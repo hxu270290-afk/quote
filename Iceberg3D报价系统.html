@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Iceberg 3D – 即时报价系统（本地版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://unpkg.com/three@0.152.2/examples/js/loaders/STLLoader.js"></script>
+<script src="https://unpkg.com/three@0.152.2/examples/js/loaders/OBJLoader.js"></script>
+<style>
+body{margin:0;padding:20px;font-family:-apple-system,system-ui,sans-serif;background:#f5f7fb}
+.card{max-width:1100px;margin:auto;background:white;border-radius:16px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.1)}
+#preview{height:500px;background:#eef4ff;border-radius:12px;margin:20px 0;overflow:hidden}
+button{background:#2563eb;color:#fff;border:none;padding:14px 28px;border-radius:99px;font-size:16px;cursor:pointer}
+select,input[type=number]{padding:10px;margin:5px;border-radius:8px;border:1px solid #ddd}
+#result{font-size:28px;margin:20px 0}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Iceberg 3D – 即时3D打印报价系统</h1>
+<input type="file" id="file" accept=".stl,.obj,.STL,.OBJ"><br><br>
+<div id="preview"></div>
+<div>
+材质：<select id="m"><option value="pla_basic">PLA Basic £0.08/g</option><option value="petg_basic">PETG £0.09/g</option><option value="pla_silk">PLA Silk £0.10/g</option></select>
+层高：<select id="l"><option value="0.20">0.20mm（推荐）</option><option value="0.12">0.12mm 高精</option><option value="0.08">0.08mm 超精</option></select>
+数量：<input type="number" id="q" value="1" min="1" style="width:80px">
+<label><input type="checkbox" id="r"> 急单 +25%</label>
+<button onclick="calc()">立即报价</button>
+</div>
+<div id="result"></div>
+</div>
+
+<script>
+const MAT={pla_basic:{d:1.24,p:0.08,min:10},petg_basic:{d:1.27,p:0.09,min:12},pla_silk:{d:1.24,p:0.10,min:14}};
+const LAYER={"0.24":1,"0.20":1.1,"0.16":1.2,"0.12":1.3,"0.08":1.5,"0.06":1.7};
+let scene,camera,renderer,controls,mesh;
+
+const container=document.getElementById('preview');
+scene=new THREE.Scene(); scene.background=new THREE.Color(0xf8f9fa);
+camera=new THREE.PerspectiveCamera(50,container.clientWidth/500,0.1,1000);
+renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(container.clientWidth,500); container.appendChild(renderer.domElement);
+controls=new THREE.OrbitControls(camera,renderer.domElement); controls.enableDamping=true;
+camera.position.set(150,100,150);
+new THREE.HemisphereLight(0xffffff,0x444444,1.2).addTo(scene);
+scene.add(new THREE.GridHelper(200,20));
+
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
+animate();
+window.onresize=()=>renderer.setSize(container.clientWidth,500);
+
+document.getElementById('file').onchange=e=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  const url=URL.createObjectURL(file);
+  if(mesh) scene.remove(mesh);
+  if(file.name.toLowerCase().endsWith('.stl')){
+    new THREE.STLLoader().load(url,g=>{loadGeo(g)});
+  }else{
+    new THREE.OBJLoader().load(url,obj=>{loadGeo(obj.children[0].geometry)});
+  }
+};
+
+function loadGeo(geo){
+  geo.computeVertexNormals(); geo.computeBoundingBox();
+  const material=new THREE.MeshStandardMaterial({color:0x709fb0,metalness:0.1,roughness:0.7});
+  mesh=new THREE.Mesh(geo,material);
+  const box=geo.boundingBox, size=box.getSize(new THREE.Vector3());
+  const center=box.getCenter(new THREE.Vector3());
+  mesh.position.sub(center); mesh.position.y=-box.min.y;
+  scene.add(mesh);
+  const max=Math.max(size.x,size.y,size.z);
+  camera.position.set(max*1.5,max,max*1.5);
+  controls.target.set(0,size.y/2,0); controls.update();
+}
+
+function calc(){
+  if(!mesh){alert("请先上传模型！");return;}
+  const pos=mesh.geometry.attributes.position.array;
+  let vol=0;
+  for(let i=0;i<pos.length;i+=9){
+    const a=[pos[i],pos[i+1],pos[i+2]], b=[pos[i+3],pos[i+4],pos[i+5]], c=[pos[i+6],pos[i+7],pos[i+8]];
+    vol+=a[0]*(b[1]*c[2]-b[2]*c[1])+b[0]*(c[1]*a[2]-c[2]*a[1])+c[0]*(a[1]*b[2]-a[2]*b[1]);
+  }
+  vol=Math.abs(vol)/6000; // mm³ → cm³
+  const mat=MAT[document.getElementById('m').value];
+  const layer=document.getElementById('l').value;
+  const qty=+document.getElementById('q').value;
+  const rush=document.getElementById('r').checked?1.25:1;
+  let price=vol*mat.d*mat.p*LAYER[layer]*qty*rush;
+  if(price<mat.min*qty) price=mat.min*qty;
+  document.getElementById('result').innerHTML=`体积 ${vol.toFixed(2)} cm³ 重量约 ${(vol*mat.d).toFixed(1)}g<br><h1>£ ${price.toFixed(2)}</h1>`;
+}
+</script>
