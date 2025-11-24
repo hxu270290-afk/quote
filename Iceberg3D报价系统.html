@@ -458,7 +458,7 @@
         </div>
 
         <button id="quoteButton" class="btn-primary" disabled>
-          Get instant quote
+          Confirm Quote / Pay Now
         </button>
         <div class="quote-note">
           This is an automatic estimate based on your file and settings.  
@@ -724,6 +724,25 @@
     return '£' + value.toFixed(2);
   }
 
+  function buildQuoteData({ total, weight, quantity, materialKey, layerKey, colourKey }) {
+    const totalWeightGrams = Math.max(1, Math.round(weight));
+    return {
+      currency: 'GBP',
+      total: Number(total.toFixed(2)),
+      quantity,
+      material: materialKey,
+      colour: colourKey,
+      layerHeight: layerKey,
+      totalWeightGrams,
+      files: uploadedFiles.map(file => ({
+        name: file.name,
+        size: file.size,
+        weight: file.weight,
+        error: file.error === true
+      }))
+    };
+  }
+
   function updateQuote() {
     const qtyRaw = parseInt(quantityInput.value, 10);
     const quantity = isNaN(qtyRaw) || qtyRaw < 1 ? 1 : qtyRaw;
@@ -737,6 +756,7 @@
       quoteButton.disabled = true;
 
       const fallbackTotal = pricingConfig.basePrice * quantity;
+      latestQuoteData = null;
       basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
       extraWeightDisplay.textContent = formatCurrency(0);
       factorsDisplay.textContent     = '× 1.00';
@@ -767,6 +787,15 @@
     const pricePerPart = basePlusExtra * factorsCombined + colourFee;
 
     const total = pricePerPart * quantity;
+
+    latestQuoteData = buildQuoteData({
+      total,
+      weight,
+      quantity,
+      materialKey,
+      layerKey,
+      colourKey
+    });
 
     basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
     extraWeightDisplay.textContent = formatCurrency(extraWeightFee);
@@ -850,7 +879,16 @@
   quoteButton.addEventListener('click', function (e) {
     e.preventDefault();
     updateQuote();
-    // 这里可以触发 Wix 表单提交：例如 document.querySelector('#wix-form-button-id')?.click();
+    if (quoteButton.disabled) return;
+    if (!latestQuoteData) {
+      weightWarning.style.display = 'block';
+      return;
+    }
+
+    window.parent.postMessage({
+      type: 'QUOTE_CONFIRMED',
+      data: latestQuoteData
+    }, '*');
   });
 
   renderFileList();

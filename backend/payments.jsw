@@ -1,0 +1,26 @@
+// Backend payment creation for Wix (backend/payments.jsw)
+import wixPayBackend from 'wix-pay-backend';
+
+/**
+ * Creates a Wix payment object for the custom 3D printing order.
+ * @param {Object} data - Quote data received from the iframe.
+ * @returns {Promise<wixPayBackend.Payment>} Payment object to pass to startPayment.
+ */
+export async function createCustomPrintPayment(data) {
+  const amount = Number(data?.total);
+  if (!isFinite(amount) || amount <= 0) {
+    throw new Error('Invalid payment amount provided.');
+  }
+
+  return wixPayBackend.createPayment({
+    items: [
+      {
+        name: 'Custom 3D Printing Order',
+        price: amount,
+        quantity: 1
+      }
+    ],
+    amount,
+    currency: 'GBP'
+  });
+}
