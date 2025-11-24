@@ -169,6 +169,69 @@
       gap: 8px;
     }
 
+    .file-list {
+      margin-top: 10px;
+      border: 1px solid var(--iceberg-border);
+      border-radius: 10px;
+      background: #f9fafb;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--iceberg-border);
+      gap: 12px;
+    }
+
+    .file-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--iceberg-text-main);
+      word-break: break-all;
+    }
+
+    .file-details {
+      font-size: 12px;
+      color: var(--iceberg-text-muted);
+    }
+
+    .file-weight {
+      font-weight: 600;
+      color: var(--iceberg-accent);
+      min-width: 88px;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .file-remove {
+      border: none;
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .file-remove:hover {
+      background: #fee2e2;
+    }
+
     .weight-display-label {
       font-size: 12px;
       text-transform: uppercase;
@@ -275,17 +338,19 @@
       <div class="card">
         <div class="field-group">
           <label for="fileInput">STL file</label>
-          <input id="fileInput" type="file" accept=".stl" />
+          <input id="fileInput" type="file" accept=".stl" multiple />
           <div class="small-text">
             Automatic quoting currently supports STL files. For other formats, you can still contact us for a manual quote.
+            You can upload multiple STL files and quote them together.
           </div>
+          <div id="fileList" class="file-list" aria-live="polite"></div>
         </div>
 
         <div class="field-group">
-          <label>Estimated weight</label>
+          <label>Estimated total weight</label>
           <div class="weight-display-box">
             <div>
-              <div class="weight-display-label">per part</div>
+              <div class="weight-display-label">all uploaded parts</div>
               <div id="weightDisplay" class="weight-display-value">--</div>
             </div>
           </div>
@@ -561,6 +626,7 @@
 
   // ====== 报价计算 & UI 绑定 ======
   const fileInput        = document.getElementById('fileInput');
+  const fileList         = document.getElementById('fileList');
   const materialSelect   = document.getElementById('materialSelect');
   const colourSelect     = document.getElementById('colourSelect');
   const layerSelect      = document.getElementById('layerSelect');
@@ -579,7 +645,80 @@
   // const hiddenQuoteTotal = document.getElementById('hiddenQuoteTotal');
   // const hiddenWeight     = document.getElementById('hiddenWeight');
 
-  let currentEstimatedWeight = null; // 单个模型克重
+  let uploadedFiles = [];
+  let fileIdCounter = 0;
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function getTotalWeight() {
+    const validWeights = uploadedFiles
+      .map(f => f.weight)
+      .filter(w => typeof w === 'number' && isFinite(w) && w > 0);
+    if (validWeights.length === 0) return null;
+    return validWeights.reduce((sum, w) => sum + w, 0);
+  }
+
+  function renderFileList() {
+    if (!fileList) return;
+    fileList.innerHTML = '';
+
+    if (uploadedFiles.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'small-text';
+      emptyMsg.textContent = 'No files uploaded yet.';
+      fileList.appendChild(emptyMsg);
+      return;
+    }
+
+    uploadedFiles.forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+
+      const meta = document.createElement('div');
+      meta.className = 'file-meta';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'file-name';
+      nameEl.textContent = file.name;
+
+      const infoEl = document.createElement('div');
+      infoEl.className = 'file-details';
+      infoEl.textContent = formatFileSize(file.size);
+
+      meta.appendChild(nameEl);
+      meta.appendChild(infoEl);
+
+      const weightEl = document.createElement('div');
+      weightEl.className = 'file-weight';
+      if (file.error) {
+        weightEl.style.color = '#b91c1c';
+        weightEl.textContent = 'Error';
+      } else if (typeof file.weight === 'number') {
+        weightEl.textContent = `${file.weight} g`;
+      } else {
+        weightEl.textContent = 'Estimating…';
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'file-remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', function () {
+        uploadedFiles = uploadedFiles.filter(f => f.id !== file.id);
+        renderFileList();
+        syncWeightAndQuote();
+      });
+
+      item.appendChild(meta);
+      item.appendChild(weightEl);
+      item.appendChild(removeBtn);
+      fileList.appendChild(item);
+    });
+  }
 
   function formatCurrency(value) {
     return '£' + value.toFixed(2);
@@ -591,7 +730,9 @@
     quantityInput.value = quantity;
     quantityDisplay.textContent = quantity;
 
-    if (currentEstimatedWeight === null || currentEstimatedWeight <= 0) {
+    const totalWeight = getTotalWeight();
+
+    if (totalWeight === null || totalWeight <= 0) {
       weightWarning.style.display = 'block';
       quoteButton.disabled = true;
 
@@ -608,7 +749,7 @@
       quoteButton.disabled = false;
     }
 
-    const weight = currentEstimatedWeight;
+    const weight = totalWeight;
     const extraWeight = Math.max(0, weight - pricingConfig.baseWeight);
     const extraWeightFee = extraWeight * pricingConfig.extraPricePerGram;
 
@@ -636,47 +777,69 @@
     // if (hiddenQuoteTotal) hiddenQuoteTotal.value = total.toFixed(2);
   }
 
+  function syncWeightAndQuote() {
+    const totalWeight = getTotalWeight();
+    if (totalWeight === null) {
+      weightDisplay.textContent = '--';
+    } else {
+      const rounded = Math.max(1, Math.round(totalWeight));
+      weightDisplay.textContent = `${rounded} g`;
+    }
+    updateQuote();
+  }
+
+  function addFilesFromInput(fileListInput) {
+    const newFiles = Array.from(fileListInput || []);
+    if (newFiles.length === 0) {
+      renderFileList();
+      syncWeightAndQuote();
+      return;
+    }
+
+    const tasks = newFiles.map(file => {
+      const lowerName = file.name.toLowerCase();
+      const fileRecord = {
+        id: ++fileIdCounter,
+        name: file.name,
+        size: file.size,
+        weight: null,
+        error: false
+      };
+
+      if (!lowerName.endsWith('.stl')) {
+        fileRecord.error = true;
+        weightWarning.style.display = 'block';
+        weightWarning.textContent = 'Automatic weight estimation currently supports STL files only.';
+        uploadedFiles.push(fileRecord);
+        return Promise.resolve();
+      }
+
+      weightWarning.textContent = 'Please upload a valid STL file so we can calculate the weight.';
+      uploadedFiles.push(fileRecord);
+
+      return estimateWeightFromSTL(file)
+        .then(grams => {
+          if (!isFinite(grams) || grams <= 0) {
+            throw new Error('Invalid weight from STL');
+          }
+          fileRecord.weight = Math.max(1, Math.round(grams));
+        })
+        .catch(err => {
+          console.error('Weight estimation error:', err);
+          fileRecord.error = true;
+        });
+    });
+
+    Promise.all(tasks).finally(() => {
+      renderFileList();
+      syncWeightAndQuote();
+      fileInput.value = '';
+    });
+  }
+
   // 文件上传 → 估重 → 报价
   fileInput.addEventListener('change', function () {
-    const file = fileInput.files && fileInput.files[0];
-    currentEstimatedWeight = null;
-    weightDisplay.textContent = '--';
-    quoteButton.disabled = true;
-
-    if (!file) {
-      updateQuote();
-      return;
-    }
-
-    const lowerName = file.name.toLowerCase();
-    if (!lowerName.endsWith('.stl')) {
-      weightWarning.style.display = 'block';
-      weightWarning.textContent = 'Automatic weight estimation currently supports STL files only.';
-      updateQuote();
-      return;
-    } else {
-      weightWarning.textContent = 'Please upload a valid STL file so we can calculate the weight.';
-    }
-
-    estimateWeightFromSTL(file)
-      .then(grams => {
-        if (!isFinite(grams) || grams <= 0) {
-          throw new Error('Invalid weight from STL');
-        }
-        const rounded = Math.max(1, Math.round(grams));
-        currentEstimatedWeight = rounded;
-        weightDisplay.textContent = rounded + ' g';
-        // if (hiddenWeight) hiddenWeight.value = rounded.toString();
-        updateQuote();
-      })
-      .catch(err => {
-        console.error('Weight estimation error:', err);
-        currentEstimatedWeight = null;
-        weightDisplay.textContent = 'Unable to estimate';
-        weightWarning.style.display = 'block';
-        weightWarning.textContent = 'We could not read this STL file. Please contact us for a manual quote.';
-        updateQuote();
-      });
+    addFilesFromInput(fileInput.files);
   });
 
   [materialSelect, colourSelect, layerSelect, quantityInput].forEach(function (el) {
@@ -690,6 +853,7 @@
     // 这里可以触发 Wix 表单提交：例如 document.querySelector('#wix-form-button-id')?.click();
   });
 
+  renderFileList();
   updateQuote();
 </script>
 </body>
