@@ -5,10 +5,10 @@
   <title>Iceberg 3D – Custom Printing Quote</title>
   <style>
     :root {
-      /* 近似你的站点配色：深绿 + 浅蓝 */
+      /* Approximate the site palette: deep green + light blue */
       --iceberg-bg: #f4f7fb;
       --iceberg-card-bg: #ffffff;
-      --iceberg-accent: #1f6b63;   /* 主绿色按钮 */
+      --iceberg-accent: #1f6b63;   /* Primary green button */
       --iceberg-accent-soft: #e0f2f0;
       --iceberg-border: #dde3ee;
       --iceberg-text-main: #1f2933;
@@ -465,7 +465,7 @@
           For complex, multi-part or engineering-grade projects, we’ll review the model and confirm the final price with you before starting any print.
         </div>
 
-        <!-- 要和 Wix 表单打通时，可以启用隐藏字段 -->
+        <!-- To connect with a Wix form, you can enable hidden fields -->
         <!-- <input type="hidden" id="hiddenQuoteTotal" name="quote_total" /> -->
         <!-- <input type="hidden" id="hiddenWeight"     name="model_weight" /> -->
       </div>
@@ -474,13 +474,13 @@
 </div>
 
 <script>
-  // ====== INTERNAL PRICING CONFIG（后台规则） ======
+  // ====== INTERNAL PRICING CONFIG (backend rules) ======
   const pricingConfig = {
-    basePrice: 19.0,          // 起步价（含前 50g PLA 0.2mm）
+    basePrice: 19.0,          // Starting price (includes first 50 g of PLA at 0.2 mm)
     baseWeight: 50,           // g
-    extraPricePerGram: 0.20,  // 超出部分每 g 单价（PLA 0.2mm 基准）
+    extraPricePerGram: 0.20,  // Per-gram charge beyond base weight (PLA 0.2 mm baseline)
 
-    // 材料系数
+    // Material multipliers
     materials: {
       PLA: 1.0,
       PETG: 1.25,
@@ -492,7 +492,7 @@
       PA_CF: 2.0
     },
 
-    // 层高系数
+    // Layer height multipliers
     layerHeights: {
       "0.28": 0.85,
       "0.20": 1.0,
@@ -500,7 +500,7 @@
       "0.08": 1.8
     },
 
-    // 颜色加价（按件）
+    // Colour surcharges (per part)
     colourFees: {
       basic: 0,
       standard: 1.5,
@@ -508,11 +508,15 @@
       custom: 4.0
     },
 
-    // 体积转克重系数（cm³ → g），考虑空心 + infill
+    // Volume-to-weight factor (cm³ → g) that accounts for hollows + infill
     volumeToWeightFactor: 0.45
   };
 
-  // ====== STL 体积计算（解析 STL，估算克重） ======
+  // ====== Wix payment routing ======
+  // Replace this with your Wix Studio checkout URL.
+  const wixPaymentUrl = 'https://your-wix-site.com/payment';
+
+  // ====== STL volume calculation (parse STL to estimate weight) ======
   function signedTetraVolume(p1, p2, p3) {
     return (
       p1.x * (p2.y * p3.z - p2.z * p3.y) -
@@ -624,7 +628,7 @@
     });
   }
 
-  // ====== 报价计算 & UI 绑定 ======
+  // ====== Quote calculation & UI bindings ======
   const fileInput        = document.getElementById('fileInput');
   const fileList         = document.getElementById('fileList');
   const materialSelect   = document.getElementById('materialSelect');
@@ -866,7 +870,7 @@
     });
   }
 
-  // 文件上传 → 估重 → 报价
+  // File upload → weight estimation → quoting
   fileInput.addEventListener('change', function () {
     addFilesFromInput(fileInput.files);
   });
@@ -889,6 +893,18 @@
       type: 'QUOTE_CONFIRMED',
       data: latestQuoteData
     }, '*');
+
+    if (wixPaymentUrl) {
+      const checkoutUrl = new URL(wixPaymentUrl);
+      checkoutUrl.searchParams.set('amount', latestQuoteData.total.toFixed(2));
+      checkoutUrl.searchParams.set('currency', latestQuoteData.currency);
+      checkoutUrl.searchParams.set('weight_g', latestQuoteData.totalWeightGrams);
+      checkoutUrl.searchParams.set('material', latestQuoteData.material);
+      checkoutUrl.searchParams.set('layer_height', latestQuoteData.layerHeight);
+      checkoutUrl.searchParams.set('colour', latestQuoteData.colour);
+      checkoutUrl.searchParams.set('quantity', latestQuoteData.quantity);
+      window.location.href = checkoutUrl.toString();
+    }
   });
 
   renderFileList();
