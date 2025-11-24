@@ -473,146 +473,33 @@
   </div>
 </div>
 
-<script>
-  // ====== INTERNAL PRICING CONFIG（后台规则） ======
-  const pricingConfig = {
-    basePrice: 19.0,          // 起步价（含前 50g PLA 0.2mm）
-    baseWeight: 50,           // g
-    extraPricePerGram: 0.20,  // 超出部分每 g 单价（PLA 0.2mm 基准）
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const quoteButton = document.getElementById('quoteButton');
 
-    // 材料系数
-    materials: {
-      PLA: 1.0,
-      PETG: 1.25,
-      TPU: 1.35,
-      PLA_CF: 1.45,
-      ASA_ABS: 1.4,
-      PC: 1.6,
-      PA: 1.8,
-      PA_CF: 2.0
-    },
-
-    // 层高系数
-    layerHeights: {
-      "0.28": 0.85,
-      "0.20": 1.0,
-      "0.12": 1.4,
-      "0.08": 1.8
-    },
-
-    // 颜色加价（按件）
-    colourFees: {
-      basic: 0,
-      standard: 1.5,
-      special: 3.0,
-      custom: 4.0
-    },
-
-    // 体积转克重系数（cm³ → g），考虑空心 + infill
-    volumeToWeightFactor: 0.45
-  };
-
-  // ====== STL 体积计算（解析 STL，估算克重） ======
-  function signedTetraVolume(p1, p2, p3) {
-    return (
-      p1.x * (p2.y * p3.z - p2.z * p3.y) -
-      p1.y * (p2.x * p3.z - p2.z * p3.x) +
-      p1.z * (p2.x * p3.y - p2.y * p3.x)
-    ) / 6.0;
-  }
-
-  function isBinarySTL(arrayBuffer) {
-    if (arrayBuffer.byteLength < 84) return false;
-    const dv = new DataView(arrayBuffer);
-    const triCount = dv.getUint32(80, true);
-    const expectedSize = 84 + triCount * 50;
-    return expectedSize === arrayBuffer.byteLength;
-  }
-
-  function computeBinarySTLVolume(arrayBuffer) {
-    const dv = new DataView(arrayBuffer);
-    const triCount = dv.getUint32(80, true);
-    let offset = 84;
-    let volume = 0;
-
-    for (let i = 0; i < triCount; i++) {
-      const ax = dv.getFloat32(offset + 12, true);
-      const ay = dv.getFloat32(offset + 16, true);
-      const az = dv.getFloat32(offset + 20, true);
-
-      const bx = dv.getFloat32(offset + 24, true);
-      const by = dv.getFloat32(offset + 28, true);
-      const bz = dv.getFloat32(offset + 32, true);
-
-      const cx = dv.getFloat32(offset + 36, true);
-      const cy = dv.getFloat32(offset + 40, true);
-      const cz = dv.getFloat32(offset + 44, true);
-
-      const p1 = { x: ax, y: ay, z: az };
-      const p2 = { x: bx, y: by, z: bz };
-      const p3 = { x: cx, y: cy, z: cz };
-
-      volume += signedTetraVolume(p1, p2, p3);
-      offset += 50;
-    }
-
-    return Math.abs(volume); // mm³
-  }
-
-  function computeAsciiSTLVolume(text) {
-    const lines = text.split(/\r?\n/);
-    let volume = 0;
-    let vertices = [];
-
-    for (let line of lines) {
-      line = line.trim();
-      if (line.toLowerCase().startsWith('vertex')) {
-        const parts = line.split(/\s+/);
-        if (parts.length >= 4) {
-          const x = parseFloat(parts[1]);
-          const y = parseFloat(parts[2]);
-          const z = parseFloat(parts[3]);
-          if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
-            vertices.push({ x, y, z });
-            if (vertices.length === 3) {
-              volume += signedTetraVolume(vertices[0], vertices[1], vertices[2]);
-              vertices = [];
-            }
-          }
-        }
+      if (!quoteButton) {
+        console.error('No element with id="quoteButton" found in iframe.');
+        return;
       }
-    }
 
-    return Math.abs(volume); // mm³
-  }
+      quoteButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('Button clicked inside iframe (minimal test)');
 
-  function estimateWeightFromSTL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+        // Debug message to verify iframe → parent communication
+        window.parent.postMessage({
+          type: 'TEST_FROM_IFRAME',
+          data: { time: Date.now() }
+        }, '*');
 
-      reader.onload = function (e) {
-        try {
-          const arrayBuffer = e.target.result;
-          if (isBinarySTL(arrayBuffer)) {
-            const volMm3 = computeBinarySTLVolume(arrayBuffer);
-            const volCm3 = volMm3 / 1000.0;
-            const grams = volCm3 * pricingConfig.volumeToWeightFactor;
-            resolve(grams);
-          } else {
-            const readerText = new FileReader();
-            readerText.onload = function (e2) {
-              try {
-                const text = e2.target.result;
-                const volMm3 = computeAsciiSTLVolume(text);
-                const volCm3 = volMm3 / 1000.0;
-                const grams = volCm3 * pricingConfig.volumeToWeightFactor;
-                resolve(grams);
-              } catch (err) {
-                reject(err);
-              }
-            };
-            readerText.onerror = reject;
-            readerText.readAsText(file);
+        // Example quote confirmation payload
+        window.parent.postMessage({
+          type: 'QUOTE_CONFIRMED',
+          data: {
+            jobId: 'TEST-' + Date.now(),
+            currency: 'GBP',
+            totalPrice: 12.34,
+            weightGrams: 100
           }
         } catch (err) {
           reject(err);
