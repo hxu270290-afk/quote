@@ -2,8 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Iceberg 3D – Instant Quote</title>
+  <title>Iceberg 3D – Custom Printing Quote</title>
   <style>
+    :root {
+      /* 近似你的站点配色：深绿 + 浅蓝 */
+      --iceberg-bg: #f4f7fb;
+      --iceberg-card-bg: #ffffff;
+      --iceberg-accent: #1f6b63;   /* 主绿色按钮 */
+      --iceberg-accent-soft: #e0f2f0;
+      --iceberg-border: #dde3ee;
+      --iceberg-text-main: #1f2933;
+      --iceberg-text-muted: #6b7280;
+    }
+
     * {
       box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -11,57 +22,96 @@
 
     body {
       margin: 0;
-      padding: 20px;
-      background: #f4f5f7;
-      color: #333;
+      padding: 24px 16px 32px;
+      background: var(--iceberg-bg);
+      color: var(--iceberg-text-main);
     }
 
-    .page {
-      max-width: 1100px;
+    .iceberg-quote-page {
+      max-width: 1120px;
       margin: 0 auto;
-      background: #fff;
-      padding: 24px 28px 32px;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .iqp-header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--iceberg-accent-soft);
+      color: var(--iceberg-accent);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .iqp-header-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--iceberg-accent);
     }
 
     h1 {
-      margin-top: 0;
+      margin: 0 0 4px;
       font-size: 26px;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
     }
 
     .subtitle {
       font-size: 14px;
-      color: #666;
-      margin-bottom: 24px;
+      color: var(--iceberg-text-muted);
+      margin-bottom: 22px;
+      max-width: 620px;
     }
 
     .steps {
       display: grid;
-      grid-template-columns: 2fr 2fr 1.5fr;
-      gap: 24px;
+      grid-template-columns: 2.1fr 2.1fr 1.5fr;
+      gap: 20px;
       align-items: flex-start;
     }
 
     .step-title {
-      font-size: 20px;
-      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .step-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--iceberg-accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
       font-weight: 600;
     }
 
     .card {
-      background: #fafbfc;
-      border: 1px solid #e1e4ea;
-      border-radius: 6px;
-      padding: 18px 18px 20px;
+      background: var(--iceberg-card-bg);
+      border: 1px solid var(--iceberg-border);
+      border-radius: 14px;
+      padding: 16px 16px 18px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
     }
 
     label {
       display: block;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #4b5563;
     }
 
     .field-group {
@@ -80,94 +130,124 @@
       width: 100%;
       padding: 8px 10px;
       font-size: 14px;
-      border-radius: 4px;
+      border-radius: 10px;
       border: 1px solid #cfd4dd;
       outline: none;
       background: #fff;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
 
     input[type="number"]:focus,
     select:focus {
-      border-color: #2c8f6b;
-      box-shadow: 0 0 0 1px #2c8f6b22;
+      border-color: var(--iceberg-accent);
+      box-shadow: 0 0 0 1px rgba(31, 107, 99, 0.12);
+      background: #f9fbff;
     }
 
     .inline-fields {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .small-text {
-      font-size: 12px;
-      color: #888;
+      font-size: 11px;
+      color: var(--iceberg-text-muted);
       margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .weight-display-box {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px dashed #cfd4dd;
+      background: #f9fafb;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .weight-display-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--iceberg-text-muted);
+    }
+
+    .weight-display-value {
+      font-weight: 600;
+    }
+
+    .warning {
+      font-size: 11px;
+      color: #b45309;
+      margin-top: 4px;
     }
 
     .summary-row {
       display: flex;
       justify-content: space-between;
       margin-bottom: 6px;
-      font-size: 14px;
+      font-size: 13px;
+      color: #4b5563;
     }
 
     .summary-row strong {
       font-weight: 600;
+      color: #111827;
     }
 
     .total-row {
-      border-top: 1px solid #dde2ea;
-      margin-top: 8px;
+      border-top: 1px solid var(--iceberg-border);
+      margin-top: 10px;
       padding-top: 10px;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
+      color: #111827;
     }
 
     .btn-primary {
       width: 100%;
-      margin-top: 14px;
+      margin-top: 12px;
       padding: 10px 0;
-      border-radius: 4px;
+      border-radius: 999px;
       border: none;
-      background: #7bb37d;
+      background: var(--iceberg-accent);
       color: #fff;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 18px rgba(31, 107, 99, 0.28);
     }
 
     .btn-primary:disabled {
-      background: #c3cfd5;
+      background: #c1ccd4;
+      box-shadow: none;
       cursor: not-allowed;
     }
 
     .btn-primary:not(:disabled):hover {
-      background: #6aa06c;
+      background: #185249;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(24, 82, 73, 0.35);
     }
 
     .quote-note {
       font-size: 11px;
-      color: #888;
-      margin-top: 4px;
-      text-align: center;
+      color: var(--iceberg-text-muted);
+      margin-top: 6px;
+      text-align: left;
+      line-height: 1.4;
     }
 
-    .warning {
-      font-size: 12px;
-      color: #b34b4b;
-      margin-top: 4px;
-    }
+    @media (max-width: 960px) {
+      body {
+        padding: 16px 10px 24px;
+      }
 
-    .weight-display-box {
-      padding: 8px 10px;
-      border-radius: 4px;
-      border: 1px solid #cfd4dd;
-      background: #fff;
-      font-size: 14px;
-    }
-
-    @media (max-width: 900px) {
       .steps {
         grid-template-columns: 1fr;
       }
@@ -175,33 +255,42 @@
   </style>
 </head>
 <body>
-<div class="page">
-  <h1>Iceberg 3D – Instant FDM Quote</h1>
+<div class="iceberg-quote-page">
+  <div class="iqp-header-tag">
+    <span class="iqp-header-tag-dot"></span>
+    CUSTOM 3D PRINTING – INSTANT QUOTE
+  </div>
+  <h1>Get an instant estimate for your custom 3D print</h1>
   <p class="subtitle">
-    Upload your STL file. We estimate the weight from the geometry, then apply material, colour and layer height to give an instant quote.
+    Upload your STL, choose material, colour and layer height. We’ll estimate the weight from the file and give you a clear, upfront price before you place your order.
   </p>
 
   <div class="steps">
-    <!-- STEP 1: FILE & ESTIMATED WEIGHT -->
+    <!-- STEP 1: FILE & AUTO WEIGHT -->
     <div>
-      <div class="step-title">1: Parts to Add</div>
+      <div class="step-title">
+        <span class="step-badge">1</span>
+        <span>Upload your model</span>
+      </div>
       <div class="card">
         <div class="field-group">
-          <label for="fileInput">Upload STL file</label>
+          <label for="fileInput">STL file</label>
           <input id="fileInput" type="file" accept=".stl" />
           <div class="small-text">
-            Currently automatic quoting supports STL files. For other formats, please contact us.
+            Automatic quoting currently supports STL files. For other formats, you can still contact us for a manual quote.
           </div>
         </div>
 
         <div class="field-group">
-          <label>Estimated weight (per part)</label>
-          <div id="weightDisplay" class="weight-display-box">
-            --
+          <label>Estimated weight</label>
+          <div class="weight-display-box">
+            <div>
+              <div class="weight-display-label">per part</div>
+              <div id="weightDisplay" class="weight-display-value">--</div>
+            </div>
           </div>
           <div class="small-text">
-            Based on model volume × filament usage factor (typical 0.2&nbsp;mm, standard infill).  
-            Actual slicer weight may differ slightly.
+            Calculated from the model volume, assuming typical 0.2&nbsp;mm FDM printing with standard infill. Final slicer weight may vary slightly.
           </div>
           <div id="weightWarning" class="warning" style="display:none;">
             Please upload a valid STL file so we can calculate the weight.
@@ -210,16 +299,19 @@
       </div>
     </div>
 
-    <!-- STEP 2: CONFIGURE -->
+    <!-- STEP 2: CONFIGURATION -->
     <div>
-      <div class="step-title">2: Configure &amp; Add Parts</div>
+      <div class="step-title">
+        <span class="step-badge">2</span>
+        <span>Choose specs</span>
+      </div>
       <div class="card">
         <div class="field-group">
           <label for="technologySelect">Technology</label>
           <select id="technologySelect" disabled>
-            <option>Fused Filament Fabrication (FFF)</option>
+            <option>FDM / FFF 3D Printing</option>
           </select>
-          <div class="small-text">Current quotes are for FDM / FFF printing.</div>
+          <div class="small-text">Quotes are for FDM printing. SLA / resin available on request.</div>
         </div>
 
         <div class="field-group">
@@ -227,7 +319,7 @@
           <select id="materialSelect">
             <option value="PLA">PLA (standard)</option>
             <option value="PETG">PETG</option>
-            <option value="TPU">TPU (flexible, please confirm)</option>
+            <option value="TPU">TPU (flexible – please confirm)</option>
             <option value="PLA_CF">PLA-CF / PETG-CF</option>
             <option value="ASA_ABS">ASA / ABS</option>
             <option value="PC">PC</option>
@@ -245,7 +337,7 @@
             <option value="custom">Special order colour</option>
           </select>
           <div class="small-text">
-            Special colours may require extra lead time. Final confirmation will be sent by email / WhatsApp.
+            Need a specific shade? Tell us in the notes – we’ll confirm availability and exact pricing before you pay.
           </div>
         </div>
 
@@ -267,9 +359,12 @@
       </div>
     </div>
 
-    <!-- STEP 3: SUMMARY -->
+    <!-- STEP 3: SUMMARY & QUOTE -->
     <div>
-      <div class="step-title">3: Review &amp; Quote</div>
+      <div class="step-title">
+        <span class="step-badge">3</span>
+        <span>Review your quote</span>
+      </div>
       <div class="card">
         <div class="summary-row">
           <span>Base (incl. first 50 g)</span>
@@ -280,7 +375,7 @@
           <span id="extraWeightDisplay">£0.00</span>
         </div>
         <div class="summary-row">
-          <span>Material &amp; layer factors</span>
+          <span>Material × layer factors</span>
           <span id="factorsDisplay">× 1.00</span>
         </div>
         <div class="summary-row">
@@ -293,38 +388,39 @@
         </div>
 
         <div class="summary-row total-row">
-          <span>Total (incl. VAT if applicable)</span>
+          <span>Total estimate</span>
           <span id="totalDisplay">£19.00</span>
         </div>
 
         <button id="quoteButton" class="btn-primary" disabled>
-          Get Quote
+          Get instant quote
         </button>
         <div class="quote-note">
-          This is an instant estimate based on your file. Final price may be adjusted after detailed file review / printability check.
+          This is an automatic estimate based on your file and settings.  
+          For complex, multi-part or engineering-grade projects, we’ll review the model and confirm the final price with you before starting any print.
         </div>
 
-        <!-- 如果要和 Wix 表单联动，可以加隐藏字段： -->
+        <!-- 要和 Wix 表单打通时，可以启用隐藏字段 -->
         <!-- <input type="hidden" id="hiddenQuoteTotal" name="quote_total" /> -->
-        <!-- <input type="hidden" id="hiddenWeight" name="model_weight" /> -->
+        <!-- <input type="hidden" id="hiddenWeight"     name="model_weight" /> -->
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // ====== INTERNAL PRICING CONFIG（后台规则，不在前端展示） ======
+  // ====== INTERNAL PRICING CONFIG（后台规则） ======
   const pricingConfig = {
     basePrice: 19.0,          // 起步价（含前 50g PLA 0.2mm）
     baseWeight: 50,           // g
-    extraPricePerGram: 0.20,  // 超出部分每 g 单价（以 PLA 0.2mm 为基准）
+    extraPricePerGram: 0.20,  // 超出部分每 g 单价（PLA 0.2mm 基准）
 
     // 材料系数
     materials: {
       PLA: 1.0,
       PETG: 1.25,
       TPU: 1.35,
-      PLA_CF: 1.45,     // PLA-CF / PETG-CF
+      PLA_CF: 1.45,
       ASA_ABS: 1.4,
       PC: 1.6,
       PA: 1.8,
@@ -341,20 +437,18 @@
 
     // 颜色加价（按件）
     colourFees: {
-      basic: 0,       // 黑 / 白
-      standard: 1.5,  // 1–2£，这里取中值
-      special: 3.0,   // 2–4£
-      custom: 4.0     // 订货色，可按需要调整
+      basic: 0,
+      standard: 1.5,
+      special: 3.0,
+      custom: 4.0
     },
 
-    // 体积（cm³）转克重的系数：solid PLA 密度约 1.24 g/cm³，
-    // 实际打印有空心 + infill，这里按经验取 0.45 左右，你可以根据真实切片结果微调。
+    // 体积转克重系数（cm³ → g），考虑空心 + infill
     volumeToWeightFactor: 0.45
   };
 
-  // ====== STL 体积计算相关函数（前端解析 STL，估算克重） ======
+  // ====== STL 体积计算（解析 STL，估算克重） ======
   function signedTetraVolume(p1, p2, p3) {
-    // 以原点为第四个点的四面体体积（带符号）
     return (
       p1.x * (p2.y * p3.z - p2.z * p3.y) -
       p1.y * (p2.x * p3.z - p2.z * p3.x) +
@@ -377,7 +471,6 @@
     let volume = 0;
 
     for (let i = 0; i < triCount; i++) {
-      // 跳过法线（前 12 字节）
       const ax = dv.getFloat32(offset + 12, true);
       const ay = dv.getFloat32(offset + 16, true);
       const az = dv.getFloat32(offset + 20, true);
@@ -395,11 +488,10 @@
       const p3 = { x: cx, y: cy, z: cz };
 
       volume += signedTetraVolume(p1, p2, p3);
-
-      offset += 50; // 每个三角面 50 字节
+      offset += 50;
     }
 
-    return Math.abs(volume); // 单位：模型坐标³（通常是 mm³）
+    return Math.abs(volume); // mm³
   }
 
   function computeAsciiSTLVolume(text) {
@@ -426,10 +518,9 @@
       }
     }
 
-    return Math.abs(volume);
+    return Math.abs(volume); // mm³
   }
 
-  // 返回 Promise<number>，单位：克
   function estimateWeightFromSTL(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -443,7 +534,6 @@
             const grams = volCm3 * pricingConfig.volumeToWeightFactor;
             resolve(grams);
           } else {
-            // 非标准二进制，按 ASCII 解析
             const readerText = new FileReader();
             readerText.onload = function (e2) {
               try {
@@ -469,7 +559,7 @@
     });
   }
 
-  // ====== 报价计算和 UI 更新 ======
+  // ====== 报价计算 & UI 绑定 ======
   const fileInput        = document.getElementById('fileInput');
   const materialSelect   = document.getElementById('materialSelect');
   const colourSelect     = document.getElementById('colourSelect');
@@ -486,11 +576,10 @@
   const quantityDisplay    = document.getElementById('quantityDisplay');
   const totalDisplay       = document.getElementById('totalDisplay');
 
-  // 如果要连到 Wix 表单，可以用这两个：
   // const hiddenQuoteTotal = document.getElementById('hiddenQuoteTotal');
   // const hiddenWeight     = document.getElementById('hiddenWeight');
 
-  let currentEstimatedWeight = null; // 单个模型估算克重
+  let currentEstimatedWeight = null; // 单个模型克重
 
   function formatCurrency(value) {
     return '£' + value.toFixed(2);
@@ -512,7 +601,6 @@
       factorsDisplay.textContent     = '× 1.00';
       colourFeeDisplay.textContent   = formatCurrency(0);
       totalDisplay.textContent       = formatCurrency(fallbackTotal);
-
       // if (hiddenQuoteTotal) hiddenQuoteTotal.value = fallbackTotal.toFixed(2);
       return;
     } else {
@@ -520,7 +608,7 @@
       quoteButton.disabled = false;
     }
 
-    const weight = currentEstimatedWeight; // 单个模型克重
+    const weight = currentEstimatedWeight;
     const extraWeight = Math.max(0, weight - pricingConfig.baseWeight);
     const extraWeightFee = extraWeight * pricingConfig.extraPricePerGram;
 
@@ -548,7 +636,7 @@
     // if (hiddenQuoteTotal) hiddenQuoteTotal.value = total.toFixed(2);
   }
 
-  // 文件上传 → 估算重量 → 更新 UI
+  // 文件上传 → 估重 → 报价
   fileInput.addEventListener('change', function () {
     const file = fileInput.files && fileInput.files[0];
     currentEstimatedWeight = null;
@@ -577,21 +665,20 @@
         }
         const rounded = Math.max(1, Math.round(grams));
         currentEstimatedWeight = rounded;
-        weightDisplay.textContent = `${rounded} g (per part)`;
+        weightDisplay.textContent = rounded + ' g';
         // if (hiddenWeight) hiddenWeight.value = rounded.toString();
         updateQuote();
       })
       .catch(err => {
         console.error('Weight estimation error:', err);
         currentEstimatedWeight = null;
-        weightDisplay.textContent = 'Unable to estimate weight';
+        weightDisplay.textContent = 'Unable to estimate';
         weightWarning.style.display = 'block';
         weightWarning.textContent = 'We could not read this STL file. Please contact us for a manual quote.';
         updateQuote();
       });
   });
 
-  // 其他参数变化时更新报价
   [materialSelect, colourSelect, layerSelect, quantityInput].forEach(function (el) {
     el.addEventListener('input', updateQuote);
     el.addEventListener('change', updateQuote);
@@ -600,11 +687,9 @@
   quoteButton.addEventListener('click', function (e) {
     e.preventDefault();
     updateQuote();
-    // 这里可以和 Wix 表单结合，例如触发表单提交
-    // document.getElementById('YOUR_WIX_FORM_BUTTON_ID').click();
+    // 这里可以触发 Wix 表单提交：例如 document.querySelector('#wix-form-button-id')?.click();
   });
 
-  // 初始化显示
   updateQuote();
 </script>
 </body>
