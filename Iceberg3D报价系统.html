@@ -306,6 +306,42 @@
       flex-wrap: wrap;
     }
 
+    .upload-card {
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .upload-card.dragover {
+      border-color: var(--accent);
+      background: rgba(79, 156, 255, 0.08);
+    }
+
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .upload-label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .upload-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .upload-error {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 6px;
+    }
+
     button {
       border-radius: 999px;
       border: none;
@@ -369,6 +405,34 @@
             <span class="icon">①</span> Model basics
           </div>
           <h2>Model details</h2>
+
+          <div class="upload-card" id="uploadZone">
+            <div class="upload-row">
+              <div>
+                <div class="upload-label">Upload your STL</div>
+                <div class="upload-meta" id="uploadMeta">
+                  Drop an STL file here or choose from your computer (max 100 MB).
+                </div>
+              </div>
+              <div class="btn-row" style="margin-top: 0;">
+                <button id="uploadButton" type="button">
+                  <span class="icon">📂</span>
+                  Choose STL
+                </button>
+              </div>
+              <input
+                type="file"
+                id="fileUpload"
+                accept=".stl,.STL"
+                style="display: none;"
+              />
+            </div>
+            <div class="hint" style="margin-top: 6px;">
+              We use the STL to review geometry; please still enter estimated
+              weight for pricing accuracy.
+            </div>
+            <div class="upload-error" id="uploadError" style="display: none;"></div>
+          </div>
 
           <div class="field-group field-group-inline">
             <div>
@@ -595,6 +659,14 @@
       return value.toFixed(2);
     }
 
+    function formatBytes(bytes) {
+      if (!bytes) return "0 B";
+      const sizes = ["B", "KB", "MB", "GB"];
+      const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+      const value = bytes / Math.pow(1024, i);
+      return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${sizes[i]}`;
+    }
+
     function calculateQuote() {
       const weightInput = document.getElementById("weight");
       const quantityInput = document.getElementById("quantity");
@@ -693,10 +765,19 @@
       document.getElementById("colour").value = "bw";
       document.getElementById("layerHeight").value = "0.2";
       document.getElementById("error").style.display = "none";
+      document.getElementById("uploadMeta").textContent =
+        "Drop an STL file here or choose from your computer (max 100 MB).";
+      document.getElementById("uploadError").style.display = "none";
       calculateQuote(); // reset summary
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      const uploadZone = document.getElementById("uploadZone");
+      const uploadButton = document.getElementById("uploadButton");
+      const fileInput = document.getElementById("fileUpload");
+      const uploadMeta = document.getElementById("uploadMeta");
+      const uploadError = document.getElementById("uploadError");
+
       const inputs = [
         "weight",
         "quantity",
@@ -709,6 +790,53 @@
         const el = document.getElementById(id);
         el.addEventListener("input", calculateQuote);
         el.addEventListener("change", calculateQuote);
+      });
+
+      function handleFile(file) {
+        if (!file) return;
+        const isStl = file.name.toLowerCase().endsWith(".stl");
+        if (!isStl) {
+          uploadError.style.display = "block";
+          uploadError.textContent = "Please upload an STL file (.stl).";
+          uploadMeta.textContent = "No valid file selected.";
+          return;
+        }
+
+        if (file.size > 100 * 1024 * 1024) {
+          uploadError.style.display = "block";
+          uploadError.textContent = "File is too large. Please keep under 100 MB.";
+          uploadMeta.textContent = "No valid file selected.";
+          return;
+        }
+
+        uploadError.style.display = "none";
+        uploadMeta.textContent = `${file.name} (${formatBytes(file.size)}) ready for review.`;
+      }
+
+      uploadButton.addEventListener("click", function () {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        handleFile(file);
+      });
+
+      uploadZone.addEventListener("dragover", function (event) {
+        event.preventDefault();
+        uploadZone.classList.add("dragover");
+      });
+
+      uploadZone.addEventListener("dragleave", function () {
+        uploadZone.classList.remove("dragover");
+      });
+
+      uploadZone.addEventListener("drop", function (event) {
+        event.preventDefault();
+        uploadZone.classList.remove("dragover");
+        const file = event.dataTransfer.files[0];
+        fileInput.files = event.dataTransfer.files;
+        handleFile(file);
       });
 
       document
