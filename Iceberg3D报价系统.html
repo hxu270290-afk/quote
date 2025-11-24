@@ -1,95 +1,731 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Iceberg 3D – 即时报价系统（本地版）</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-<script src="https://unpkg.com/three@0.152.2/examples/js/loaders/STLLoader.js"></script>
-<script src="https://unpkg.com/three@0.152.2/examples/js/loaders/OBJLoader.js"></script>
-<style>
-body{margin:0;padding:20px;font-family:-apple-system,system-ui,sans-serif;background:#f5f7fb}
-.card{max-width:1100px;margin:auto;background:white;border-radius:16px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,0.1)}
-#preview{height:500px;background:#eef4ff;border-radius:12px;margin:20px 0;overflow:hidden}
-button{background:#2563eb;color:#fff;border:none;padding:14px 28px;border-radius:99px;font-size:16px;cursor:pointer}
-select,input[type=number]{padding:10px;margin:5px;border-radius:8px;border:1px solid #ddd}
-#result{font-size:28px;margin:20px 0}
-</style>
+  <meta charset="UTF-8" />
+  <title>Iceberg 3D – Custom 3D Printing Quote Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050816;
+      --card-bg: #0b1020;
+      --accent: #4f9cff;
+      --accent-soft: rgba(79, 156, 255, 0.12);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f5f5f7;
+      --text-muted: #a0a3b1;
+      --danger: #ff6b81;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #151b3b 0, #050816 55%);
+      color: var(--text-main);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1120px;
+      margin: auto;
+    }
+
+    header {
+      margin-bottom: 18px;
+    }
+
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      letter-spacing: 0.04em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #33ff99;
+      box-shadow: 0 0 0 4px rgba(51, 255, 153, 0.25);
+    }
+
+    .card {
+      background: linear-gradient(
+            135deg,
+            rgba(151, 201, 255, 0.09) 0,
+            transparent 45%
+          ),
+        radial-gradient(circle at top right, rgba(35, 88, 255, 0.3) 0, transparent 55%),
+        var(--card-bg);
+      border-radius: 24px;
+      padding: 20px 20px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(16px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.2fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 880px) {
+      body {
+        padding: 16px;
+      }
+      .card {
+        padding: 16px;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 17px;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .section-label span.icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .field-group {
+      margin-bottom: 10px;
+    }
+
+    .field-group-inline {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    .label-main {
+      font-size: 13px;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(7, 10, 25, 0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input[type="number"]::placeholder {
+      color: rgba(160, 163, 177, 0.75);
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(79, 156, 255, 0.55);
+      background: rgba(7, 10, 25, 1);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .pill.strong {
+      border-color: rgba(51, 255, 153, 0.4);
+      color: #b7ffe0;
+    }
+
+    .summary-card {
+      border-radius: 18px;
+      padding: 14px 14px 12px;
+      background: radial-gradient(circle at top left, #23345c 0, #050816 55%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .summary-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .badge-soft {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(51, 255, 153, 0.12);
+      color: #b7ffe0;
+    }
+
+    .price-main {
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: 0.03em;
+      margin: 4px 0 2px;
+    }
+
+    .price-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .price-sub span {
+      color: #e2e3ff;
+    }
+
+    .breakdown {
+      margin: 8px 0 6px;
+      padding: 6px 0 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+    }
+
+    .breakdown-row span.value {
+      color: #e7e7f9;
+    }
+
+    .note {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .note-strong {
+      color: #ffeaa7;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .footer-note b {
+      color: #e7e7f9;
+    }
+
+    .error {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #050816;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(79, 156, 255, 0.4);
+      transition: transform 0.12s ease, box-shadow 0.12s ease,
+        background 0.12s ease;
+    }
+
+    button span.icon {
+      font-size: 14px;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text-muted);
+      box-shadow: none;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 40px rgba(79, 156, 255, 0.5);
+      background: #6ba9ff;
+    }
+
+    button.secondary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      background: rgba(255, 255, 255, 0.04);
+    }
+  </style>
 </head>
 <body>
-<div class="card">
-<h1>Iceberg 3D – 即时3D打印报价系统</h1>
-<input type="file" id="file" accept=".stl,.obj,.STL,.OBJ"><br><br>
-<div id="preview"></div>
-<div>
-材质：<select id="m"><option value="pla_basic">PLA Basic £0.08/g</option><option value="petg_basic">PETG £0.09/g</option><option value="pla_silk">PLA Silk £0.10/g</option></select>
-层高：<select id="l"><option value="0.20">0.20mm（推荐）</option><option value="0.12">0.12mm 高精</option><option value="0.08">0.08mm 超精</option></select>
-数量：<input type="number" id="q" value="1" min="1" style="width:80px">
-<label><input type="checkbox" id="r"> 急单 +25%</label>
-<button onclick="calc()">立即报价</button>
-</div>
-<div id="result"></div>
-</div>
+  <div class="page">
+    <header>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Iceberg 3D · Instant quote (beta)
+      </div>
+      <h1>Custom 3D Printing Quote Calculator</h1>
+      <p>
+        Pricing based on material, layer height, colour and total weight.
+        This tool is for guidance – we’ll confirm the final quote with you.
+      </p>
+    </header>
 
-<script>
-const MAT={pla_basic:{d:1.24,p:0.08,min:10},petg_basic:{d:1.27,p:0.09,min:12},pla_silk:{d:1.24,p:0.10,min:14}};
-const LAYER={"0.24":1,"0.20":1.1,"0.16":1.2,"0.12":1.3,"0.08":1.5,"0.06":1.7};
-let scene,camera,renderer,controls,mesh;
+    <div class="card">
+      <div class="layout">
+        <!-- LEFT: INPUTS -->
+        <div>
+          <div class="section-label">
+            <span class="icon">①</span> Model basics
+          </div>
+          <h2>Model details</h2>
 
-const container=document.getElementById('preview');
-scene=new THREE.Scene(); scene.background=new THREE.Color(0xf8f9fa);
-camera=new THREE.PerspectiveCamera(50,container.clientWidth/500,0.1,1000);
-renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(container.clientWidth,500); container.appendChild(renderer.domElement);
-controls=new THREE.OrbitControls(camera,renderer.domElement); controls.enableDamping=true;
-camera.position.set(150,100,150);
-new THREE.HemisphereLight(0xffffff,0x444444,1.2).addTo(scene);
-scene.add(new THREE.GridHelper(200,20));
+          <div class="field-group field-group-inline">
+            <div>
+              <label class="label-main" for="weight">
+                Total weight (g)
+              </label>
+              <input
+                type="number"
+                id="weight"
+                min="1"
+                step="1"
+                placeholder="e.g. 70"
+              />
+              <div class="hint">
+                Use total weight of the printed parts (all pieces combined).
+              </div>
+            </div>
+            <div>
+              <label class="label-main" for="quantity">
+                Quantity (pcs)
+              </label>
+              <input
+                type="number"
+                id="quantity"
+                min="1"
+                step="1"
+                value="1"
+              />
+              <div class="hint">
+                We’ll show both total and per-piece price.
+              </div>
+            </div>
+          </div>
 
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
-animate();
-window.onresize=()=>renderer.setSize(container.clientWidth,500);
+          <div class="section-label" style="margin-top: 8px;">
+            <span class="icon">②</span> Material & colour
+          </div>
 
-document.getElementById('file').onchange=e=>{
-  const file=e.target.files[0];
-  if(!file) return;
-  const url=URL.createObjectURL(file);
-  if(mesh) scene.remove(mesh);
-  if(file.name.toLowerCase().endsWith('.stl')){
-    new THREE.STLLoader().load(url,g=>{loadGeo(g)});
-  }else{
-    new THREE.OBJLoader().load(url,obj=>{loadGeo(obj.children[0].geometry)});
-  }
-};
+          <div class="field-group field-group-inline">
+            <div>
+              <label class="label-main" for="material">
+                Material
+              </label>
+              <select id="material">
+                <option value="pla">PLA (Standard)</option>
+                <option value="petg">PETG</option>
+                <option value="tpu">TPU (Flexible)</option>
+                <option value="pla_cf">PLA-CF / PETG-CF</option>
+                <option value="asa_abs">ASA / ABS</option>
+                <option value="pc">PC</option>
+                <option value="pa">PA (Nylon)</option>
+                <option value="pa_cf">PA-CF (Nylon CF)</option>
+              </select>
+              <div class="hint">
+                PLA is the default for most models. Engineering materials are
+                higher strength and cost.
+              </div>
+            </div>
 
-function loadGeo(geo){
-  geo.computeVertexNormals(); geo.computeBoundingBox();
-  const material=new THREE.MeshStandardMaterial({color:0x709fb0,metalness:0.1,roughness:0.7});
-  mesh=new THREE.Mesh(geo,material);
-  const box=geo.boundingBox, size=box.getSize(new THREE.Vector3());
-  const center=box.getCenter(new THREE.Vector3());
-  mesh.position.sub(center); mesh.position.y=-box.min.y;
-  scene.add(mesh);
-  const max=Math.max(size.x,size.y,size.z);
-  camera.position.set(max*1.5,max,max*1.5);
-  controls.target.set(0,size.y/2,0); controls.update();
-}
+            <div>
+              <label class="label-main" for="colour">
+                Colour category
+              </label>
+              <select id="colour">
+                <option value="bw">Black / White (base)</option>
+                <option value="standard">Standard colour (red / blue / grey)</option>
+                <option value="metallic">Metallic / silk / special texture</option>
+                <option value="special">
+                  Special-order colour (to be confirmed)
+                </option>
+              </select>
+              <div class="hint">
+                Colour surcharge is per piece. Special-order colours are
+                confirmed manually.
+              </div>
+            </div>
+          </div>
 
-function calc(){
-  if(!mesh){alert("请先上传模型！");return;}
-  const pos=mesh.geometry.attributes.position.array;
-  let vol=0;
-  for(let i=0;i<pos.length;i+=9){
-    const a=[pos[i],pos[i+1],pos[i+2]], b=[pos[i+3],pos[i+4],pos[i+5]], c=[pos[i+6],pos[i+7],pos[i+8]];
-    vol+=a[0]*(b[1]*c[2]-b[2]*c[1])+b[0]*(c[1]*a[2]-c[2]*a[1])+c[0]*(a[1]*b[2]-a[2]*b[1]);
-  }
-  vol=Math.abs(vol)/6000; // mm³ → cm³
-  const mat=MAT[document.getElementById('m').value];
-  const layer=document.getElementById('l').value;
-  const qty=+document.getElementById('q').value;
-  const rush=document.getElementById('r').checked?1.25:1;
-  let price=vol*mat.d*mat.p*LAYER[layer]*qty*rush;
-  if(price<mat.min*qty) price=mat.min*qty;
-  document.getElementById('result').innerHTML=`体积 ${vol.toFixed(2)} cm³ 重量约 ${(vol*mat.d).toFixed(1)}g<br><h1>£ ${price.toFixed(2)}</h1>`;
-}
-</script>
+          <div class="pill-row">
+            <span class="pill">PLA base factor: 1.0×</span>
+            <span class="pill">PETG: 1.25×</span>
+            <span class="pill">PLA-CF: 1.45×</span>
+            <span class="pill strong">Engineering: up to 2.0×</span>
+          </div>
+
+          <div class="section-label" style="margin-top: 14px;">
+            <span class="icon">③</span> Quality / layer height
+          </div>
+
+          <div class="field-group">
+            <label class="label-main" for="layerHeight">
+              Layer height
+            </label>
+            <select id="layerHeight">
+              <option value="0.28">0.28 mm – Fast draft (0.85× time)</option>
+              <option value="0.2" selected>0.20 mm – Standard (1.0×)</option>
+              <option value="0.12">0.12 mm – High detail (1.4×)</option>
+              <option value="0.08">0.08 mm – Ultra fine (1.8×)</option>
+            </select>
+            <div class="hint">
+              Smaller layer height = better surface + longer print time =
+              higher cost.
+            </div>
+          </div>
+
+          <div id="error" class="error" style="display:none;"></div>
+
+          <div class="btn-row">
+            <button id="recalculate">
+              <span class="icon">⚡</span>
+              Update quote
+            </button>
+            <button class="secondary" id="reset">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: SUMMARY -->
+        <div>
+          <div class="summary-card">
+            <div class="summary-header">
+              <div class="summary-title">Estimated quote</div>
+              <div class="badge-soft">Auto-calculated</div>
+            </div>
+
+            <div class="price-main" id="totalPrice">£0.00</div>
+            <div class="price-sub">
+              Approx. <span id="pricePerPiece">£0.00</span> per piece
+            </div>
+
+            <div class="breakdown">
+              <div class="breakdown-row">
+                <span>Base (incl. first 50g)</span>
+                <span class="value" id="basePart">£19.00</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Extra weight @ £0.20/g</span>
+                <span class="value" id="extraWeightPart">£0.00</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Material factor</span>
+                <span class="value" id="materialFactorLabel">1.00× (PLA)</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Layer height factor</span>
+                <span class="value" id="layerFactorLabel">1.00× (0.20 mm)</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Colour surcharge</span>
+                <span class="value" id="colourPart">£0.00</span>
+              </div>
+              <div class="breakdown-row">
+                <span><b>Total (all pieces)</b></span>
+                <span class="value" id="totalPart"><b>£0.00</b></span>
+              </div>
+            </div>
+
+            <div class="note">
+              Formula:
+              <span class="note-strong">
+                (Base £19 + extra weight) × material factor × layer factor + colour fee
+              </span>
+            </div>
+            <div class="note">
+              This is a guideline quote for <b>FDM printing</b>.
+              Complex post-processing, assembly or support removal may add to
+              the final price.
+            </div>
+          </div>
+
+          <div class="footer-note">
+            <b>How we charge</b> · First 50g are included in the £19 starting
+            price. Any weight above that is charged at £0.20/g (based on PLA
+            0.2&nbsp;mm), then adjusted by material and layer height factors.
+            Colour surcharges are added per piece.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------
+    // Pricing configuration（你可以按需修改）
+    // -------------------------------
+
+    const BASE_PRICE = 19; // 起步价（含前 50g）
+    const INCLUDED_WEIGHT = 50; // g
+    const EXTRA_RATE_PER_G = 0.2; // 超出部分 £/g
+
+    // 材料系数
+    const MATERIALS = {
+      pla: { label: "PLA (Standard)", factor: 1.0 },
+      petg: { label: "PETG", factor: 1.25 },
+      tpu: { label: "TPU (Flexible)", factor: 1.35 },
+      pla_cf: { label: "PLA-CF / PETG-CF", factor: 1.45 },
+      asa_abs: { label: "ASA / ABS", factor: 1.4 },
+      pc: { label: "PC", factor: 1.6 },
+      pa: { label: "PA (Nylon)", factor: 1.8 },
+      pa_cf: { label: "PA-CF (Nylon CF)", factor: 2.0 },
+    };
+
+    // 层高系数
+    const LAYERS = {
+      "0.28": { label: "0.28 mm", factor: 0.85 },
+      "0.2": { label: "0.20 mm", factor: 1.0 },
+      "0.12": { label: "0.12 mm", factor: 1.4 },
+      "0.08": { label: "0.08 mm", factor: 1.8 },
+    };
+
+    // 颜色加价（每件）
+    // 这里选了一个固定值（可以按你真实情况改）
+    const COLOURS = {
+      bw: { label: "Black / White", surchargePerPiece: 0 },
+      standard: { label: "Standard colour", surchargePerPiece: 2 },
+      metallic: { label: "Metallic / silk", surchargePerPiece: 3 },
+      // 特殊订色一般需要手动算成本，这里先不加价，只给提示
+      special: { label: "Special-order colour", surchargePerPiece: 0 },
+    };
+
+    // 工具：保留两位小数
+    function toMoney(value) {
+      return value.toFixed(2);
+    }
+
+    function calculateQuote() {
+      const weightInput = document.getElementById("weight");
+      const quantityInput = document.getElementById("quantity");
+      const materialSelect = document.getElementById("material");
+      const colourSelect = document.getElementById("colour");
+      const layerSelect = document.getElementById("layerHeight");
+      const errorEl = document.getElementById("error");
+
+      const totalPriceEl = document.getElementById("totalPrice");
+      const pricePerPieceEl = document.getElementById("pricePerPiece");
+      const basePartEl = document.getElementById("basePart");
+      const extraWeightPartEl = document.getElementById("extraWeightPart");
+      const materialFactorLabelEl = document.getElementById(
+        "materialFactorLabel"
+      );
+      const layerFactorLabelEl = document.getElementById("layerFactorLabel");
+      const colourPartEl = document.getElementById("colourPart");
+      const totalPartEl = document.getElementById("totalPart");
+
+      let weight = parseFloat(weightInput.value);
+      let quantity = parseInt(quantityInput.value, 10);
+
+      // 基本校验
+      if (isNaN(weight) || weight <= 0) {
+        errorEl.style.display = "block";
+        errorEl.textContent = "Please enter a valid total weight greater than 0 g.";
+        totalPriceEl.textContent = "£0.00";
+        pricePerPieceEl.textContent = "£0.00";
+        basePartEl.textContent = "£19.00";
+        extraWeightPartEl.textContent = "£0.00";
+        colourPartEl.textContent = "£0.00";
+        totalPartEl.textContent = "£0.00";
+        return;
+      }
+
+      if (isNaN(quantity) || quantity <= 0) {
+        quantity = 1;
+        quantityInput.value = "1";
+      }
+
+      errorEl.style.display = "none";
+      errorEl.textContent = "";
+
+      const materialKey = materialSelect.value;
+      const material = MATERIALS[materialKey] || MATERIALS["pla"];
+
+      const layerKey = layerSelect.value;
+      const layer = LAYERS[layerKey] || LAYERS["0.2"];
+
+      const colourKey = colourSelect.value;
+      const colour = COLOURS[colourKey] || COLOURS["bw"];
+
+      // 超出克重
+      const extraWeight = Math.max(0, weight - INCLUDED_WEIGHT);
+      const extraWeightFee = extraWeight * EXTRA_RATE_PER_G;
+
+      const basePlusExtra = BASE_PRICE + extraWeightFee;
+
+      const materialFactor = material.factor;
+      const layerFactor = layer.factor;
+
+      // 核心价格（不含颜色）
+      const corePrice = basePlusExtra * materialFactor * layerFactor;
+
+      // 颜色加价：按件
+      const colourFeeTotal = colour.surchargePerPiece * quantity;
+
+      // 总价（所有件）
+      const totalPrice = corePrice + colourFeeTotal;
+      const pricePerPiece = totalPrice / quantity;
+
+      // 更新 UI
+      basePartEl.textContent = "£" + toMoney(BASE_PRICE);
+      extraWeightPartEl.textContent = "£" + toMoney(extraWeightFee);
+      materialFactorLabelEl.textContent =
+        materialFactor.toFixed(2) + "× (" + material.label + ")";
+      layerFactorLabelEl.textContent =
+        layerFactor.toFixed(2) + "× (" + layer.label + ")";
+      colourPartEl.textContent = "£" + toMoney(colourFeeTotal);
+      totalPartEl.textContent = "£" + toMoney(totalPrice);
+      totalPriceEl.textContent = "£" + toMoney(totalPrice);
+      pricePerPieceEl.textContent = "£" + toMoney(pricePerPiece);
+
+      // 如果选择了 special colour，可以提示需人工确认
+      if (colourKey === "special") {
+        errorEl.style.display = "block";
+        errorEl.textContent =
+          "Special-order colours may require an updated quote based on supplier cost.";
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("weight").value = "";
+      document.getElementById("quantity").value = "1";
+      document.getElementById("material").value = "pla";
+      document.getElementById("colour").value = "bw";
+      document.getElementById("layerHeight").value = "0.2";
+      document.getElementById("error").style.display = "none";
+      calculateQuote(); // reset summary
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const inputs = [
+        "weight",
+        "quantity",
+        "material",
+        "colour",
+        "layerHeight",
+      ];
+
+      inputs.forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener("input", calculateQuote);
+        el.addEventListener("change", calculateQuote);
+      });
+
+      document
+        .getElementById("recalculate")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          calculateQuote();
+        });
+
+      document.getElementById("reset").addEventListener("click", function (e) {
+        e.preventDefault();
+        resetForm();
+      });
+
+      // 初始化
+      calculateQuote();
+    });
+  </script>
+</body>
+</html>
