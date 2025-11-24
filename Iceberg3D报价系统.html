@@ -2,10 +2,476 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Iframe Test – Button & postMessage</title>
+  <title>Iceberg 3D – Custom Printing Quote</title>
+  <style>
+    :root {
+      /* 近似你的站点配色：深绿 + 浅蓝 */
+      --iceberg-bg: #f4f7fb;
+      --iceberg-card-bg: #ffffff;
+      --iceberg-accent: #1f6b63;   /* 主绿色按钮 */
+      --iceberg-accent-soft: #e0f2f0;
+      --iceberg-border: #dde3ee;
+      --iceberg-text-main: #1f2933;
+      --iceberg-text-muted: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px 16px 32px;
+      background: var(--iceberg-bg);
+      color: var(--iceberg-text-main);
+    }
+
+    .iceberg-quote-page {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .iqp-header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--iceberg-accent-soft);
+      color: var(--iceberg-accent);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .iqp-header-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--iceberg-accent);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--iceberg-text-muted);
+      margin-bottom: 22px;
+      max-width: 620px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: 2.1fr 2.1fr 1.5fr;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .step-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .step-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--iceberg-accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--iceberg-card-bg);
+      border: 1px solid var(--iceberg-border);
+      border-radius: 14px;
+      padding: 16px 16px 18px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #4b5563;
+    }
+
+    .field-group {
+      margin-bottom: 14px;
+    }
+
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 14px;
+      border-radius: 10px;
+      border: 1px solid #cfd4dd;
+      outline: none;
+      background: #fff;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--iceberg-accent);
+      box-shadow: 0 0 0 1px rgba(31, 107, 99, 0.12);
+      background: #f9fbff;
+    }
+
+    .inline-fields {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .small-text {
+      font-size: 11px;
+      color: var(--iceberg-text-muted);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .weight-display-box {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px dashed #cfd4dd;
+      background: #f9fafb;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-list {
+      margin-top: 10px;
+      border: 1px solid var(--iceberg-border);
+      border-radius: 10px;
+      background: #f9fafb;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--iceberg-border);
+      gap: 12px;
+    }
+
+    .file-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--iceberg-text-main);
+      word-break: break-all;
+    }
+
+    .file-details {
+      font-size: 12px;
+      color: var(--iceberg-text-muted);
+    }
+
+    .file-weight {
+      font-weight: 600;
+      color: var(--iceberg-accent);
+      min-width: 88px;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .file-remove {
+      border: none;
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .file-remove:hover {
+      background: #fee2e2;
+    }
+
+    .weight-display-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--iceberg-text-muted);
+    }
+
+    .weight-display-value {
+      font-weight: 600;
+    }
+
+    .warning {
+      font-size: 11px;
+      color: #b45309;
+      margin-top: 4px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .summary-row strong {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .total-row {
+      border-top: 1px solid var(--iceberg-border);
+      margin-top: 10px;
+      padding-top: 10px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .btn-primary {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 0;
+      border-radius: 999px;
+      border: none;
+      background: var(--iceberg-accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 18px rgba(31, 107, 99, 0.28);
+    }
+
+    .btn-primary:disabled {
+      background: #c1ccd4;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-primary:not(:disabled):hover {
+      background: #185249;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(24, 82, 73, 0.35);
+    }
+
+    .quote-note {
+      font-size: 11px;
+      color: var(--iceberg-text-muted);
+      margin-top: 6px;
+      text-align: left;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 960px) {
+      body {
+        padding: 16px 10px 24px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <button id="quoteButton">Test Pay Button</button>
+<div class="iceberg-quote-page">
+  <div class="iqp-header-tag">
+    <span class="iqp-header-tag-dot"></span>
+    CUSTOM 3D PRINTING – INSTANT QUOTE
+  </div>
+  <h1>Get an instant estimate for your custom 3D print</h1>
+  <p class="subtitle">
+    Upload your STL, choose material, colour and layer height. We’ll estimate the weight from the file and give you a clear, upfront price before you place your order.
+  </p>
+
+  <div class="steps">
+    <!-- STEP 1: FILE & AUTO WEIGHT -->
+    <div>
+      <div class="step-title">
+        <span class="step-badge">1</span>
+        <span>Upload your model</span>
+      </div>
+      <div class="card">
+        <div class="field-group">
+          <label for="fileInput">STL file</label>
+          <input id="fileInput" type="file" accept=".stl" multiple />
+          <div class="small-text">
+            Automatic quoting currently supports STL files. For other formats, you can still contact us for a manual quote.
+            You can upload multiple STL files and quote them together.
+          </div>
+          <div id="fileList" class="file-list" aria-live="polite"></div>
+        </div>
+
+        <div class="field-group">
+          <label>Estimated total weight</label>
+          <div class="weight-display-box">
+            <div>
+              <div class="weight-display-label">all uploaded parts</div>
+              <div id="weightDisplay" class="weight-display-value">--</div>
+            </div>
+          </div>
+          <div class="small-text">
+            Calculated from the model volume, assuming typical 0.2&nbsp;mm FDM printing with standard infill. Final slicer weight may vary slightly.
+          </div>
+          <div id="weightWarning" class="warning" style="display:none;">
+            Please upload a valid STL file so we can calculate the weight.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: CONFIGURATION -->
+    <div>
+      <div class="step-title">
+        <span class="step-badge">2</span>
+        <span>Choose specs</span>
+      </div>
+      <div class="card">
+        <div class="field-group">
+          <label for="technologySelect">Technology</label>
+          <select id="technologySelect" disabled>
+            <option>FDM / FFF 3D Printing</option>
+          </select>
+          <div class="small-text">Quotes are for FDM printing. SLA / resin available on request.</div>
+        </div>
+
+        <div class="field-group">
+          <label for="materialSelect">Material</label>
+          <select id="materialSelect">
+            <option value="PLA">PLA (standard)</option>
+            <option value="PETG">PETG</option>
+            <option value="TPU">TPU (flexible – please confirm)</option>
+            <option value="PLA_CF">PLA-CF / PETG-CF</option>
+            <option value="ASA_ABS">ASA / ABS</option>
+            <option value="PC">PC</option>
+            <option value="PA">PA / Nylon</option>
+            <option value="PA_CF">PA-CF</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="colourSelect">Colour</label>
+          <select id="colourSelect">
+            <option value="basic">Black / White (no extra)</option>
+            <option value="standard">Standard colour (red / blue / grey / green)</option>
+            <option value="special">Metallic / silk / special texture</option>
+            <option value="custom">Special order colour</option>
+          </select>
+          <div class="small-text">
+            Need a specific shade? Tell us in the notes – we’ll confirm availability and exact pricing before you pay.
+          </div>
+        </div>
+
+        <div class="inline-fields">
+          <div class="field-group">
+            <label for="layerSelect">Layer height</label>
+            <select id="layerSelect">
+              <option value="0.28">0.28 mm – fast / draft</option>
+              <option value="0.20" selected>0.20 mm – standard</option>
+              <option value="0.12">0.12 mm – high detail</option>
+              <option value="0.08">0.08 mm – ultra fine</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="quantityInput">Quantity</label>
+            <input id="quantityInput" type="number" min="1" step="1" value="1" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: SUMMARY & QUOTE -->
+    <div>
+      <div class="step-title">
+        <span class="step-badge">3</span>
+        <span>Review your quote</span>
+      </div>
+      <div class="card">
+        <div class="summary-row">
+          <span>Base (incl. first 50 g)</span>
+          <span id="basePriceDisplay">£19.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Extra weight charge</span>
+          <span id="extraWeightDisplay">£0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Material × layer factors</span>
+          <span id="factorsDisplay">× 1.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Colour surcharge</span>
+          <span id="colourFeeDisplay">£0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Quantity</span>
+          <span id="quantityDisplay">1</span>
+        </div>
+
+        <div class="summary-row total-row">
+          <span>Total estimate</span>
+          <span id="totalDisplay">£19.00</span>
+        </div>
+
+        <button id="quoteButton" class="btn-primary" disabled>
+          Confirm Quote / Pay Now
+        </button>
+        <div class="quote-note">
+          This is an automatic estimate based on your file and settings.  
+          For complex, multi-part or engineering-grade projects, we’ll review the model and confirm the final price with you before starting any print.
+        </div>
+
+        <!-- 要和 Wix 表单打通时，可以启用隐藏字段 -->
+        <!-- <input type="hidden" id="hiddenQuoteTotal" name="quote_total" /> -->
+        <!-- <input type="hidden" id="hiddenWeight"     name="model_weight" /> -->
+      </div>
+    </div>
+  </div>
+</div>
 
   <script>
     window.addEventListener('DOMContentLoaded', () => {
@@ -35,9 +501,285 @@
             totalPrice: 12.34,
             weightGrams: 100
           }
-        }, '*');
-      });
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
     });
-  </script>
+  }
+
+  // ====== 报价计算 & UI 绑定 ======
+  const fileInput        = document.getElementById('fileInput');
+  const fileList         = document.getElementById('fileList');
+  const materialSelect   = document.getElementById('materialSelect');
+  const colourSelect     = document.getElementById('colourSelect');
+  const layerSelect      = document.getElementById('layerSelect');
+  const quantityInput    = document.getElementById('quantityInput');
+  const quoteButton      = document.getElementById('quoteButton');
+  const weightWarning    = document.getElementById('weightWarning');
+  const weightDisplay    = document.getElementById('weightDisplay');
+
+  const basePriceDisplay   = document.getElementById('basePriceDisplay');
+  const extraWeightDisplay = document.getElementById('extraWeightDisplay');
+  const factorsDisplay     = document.getElementById('factorsDisplay');
+  const colourFeeDisplay   = document.getElementById('colourFeeDisplay');
+  const quantityDisplay    = document.getElementById('quantityDisplay');
+  const totalDisplay       = document.getElementById('totalDisplay');
+
+  // const hiddenQuoteTotal = document.getElementById('hiddenQuoteTotal');
+  // const hiddenWeight     = document.getElementById('hiddenWeight');
+
+  let uploadedFiles = [];
+  let fileIdCounter = 0;
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function getTotalWeight() {
+    const validWeights = uploadedFiles
+      .map(f => f.weight)
+      .filter(w => typeof w === 'number' && isFinite(w) && w > 0);
+    if (validWeights.length === 0) return null;
+    return validWeights.reduce((sum, w) => sum + w, 0);
+  }
+
+  function renderFileList() {
+    if (!fileList) return;
+    fileList.innerHTML = '';
+
+    if (uploadedFiles.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'small-text';
+      emptyMsg.textContent = 'No files uploaded yet.';
+      fileList.appendChild(emptyMsg);
+      return;
+    }
+
+    uploadedFiles.forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+
+      const meta = document.createElement('div');
+      meta.className = 'file-meta';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'file-name';
+      nameEl.textContent = file.name;
+
+      const infoEl = document.createElement('div');
+      infoEl.className = 'file-details';
+      infoEl.textContent = formatFileSize(file.size);
+
+      meta.appendChild(nameEl);
+      meta.appendChild(infoEl);
+
+      const weightEl = document.createElement('div');
+      weightEl.className = 'file-weight';
+      if (file.error) {
+        weightEl.style.color = '#b91c1c';
+        weightEl.textContent = 'Error';
+      } else if (typeof file.weight === 'number') {
+        weightEl.textContent = `${file.weight} g`;
+      } else {
+        weightEl.textContent = 'Estimating…';
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'file-remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', function () {
+        uploadedFiles = uploadedFiles.filter(f => f.id !== file.id);
+        renderFileList();
+        syncWeightAndQuote();
+      });
+
+      item.appendChild(meta);
+      item.appendChild(weightEl);
+      item.appendChild(removeBtn);
+      fileList.appendChild(item);
+    });
+  }
+
+  function formatCurrency(value) {
+    return '£' + value.toFixed(2);
+  }
+
+  function buildQuoteData({ total, weight, quantity, materialKey, layerKey, colourKey }) {
+    const totalWeightGrams = Math.max(1, Math.round(weight));
+    return {
+      currency: 'GBP',
+      total: Number(total.toFixed(2)),
+      quantity,
+      material: materialKey,
+      colour: colourKey,
+      layerHeight: layerKey,
+      totalWeightGrams,
+      files: uploadedFiles.map(file => ({
+        name: file.name,
+        size: file.size,
+        weight: file.weight,
+        error: file.error === true
+      }))
+    };
+  }
+
+  function updateQuote() {
+    const qtyRaw = parseInt(quantityInput.value, 10);
+    const quantity = isNaN(qtyRaw) || qtyRaw < 1 ? 1 : qtyRaw;
+    quantityInput.value = quantity;
+    quantityDisplay.textContent = quantity;
+
+    const totalWeight = getTotalWeight();
+
+    if (totalWeight === null || totalWeight <= 0) {
+      weightWarning.style.display = 'block';
+      quoteButton.disabled = true;
+
+      const fallbackTotal = pricingConfig.basePrice * quantity;
+      latestQuoteData = null;
+      basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
+      extraWeightDisplay.textContent = formatCurrency(0);
+      factorsDisplay.textContent     = '× 1.00';
+      colourFeeDisplay.textContent   = formatCurrency(0);
+      totalDisplay.textContent       = formatCurrency(fallbackTotal);
+      // if (hiddenQuoteTotal) hiddenQuoteTotal.value = fallbackTotal.toFixed(2);
+      return;
+    } else {
+      weightWarning.style.display = 'none';
+      quoteButton.disabled = false;
+    }
+
+    const weight = totalWeight;
+    const extraWeight = Math.max(0, weight - pricingConfig.baseWeight);
+    const extraWeightFee = extraWeight * pricingConfig.extraPricePerGram;
+
+    const materialKey = materialSelect.value;
+    const layerKey    = layerSelect.value;
+    const colourKey   = colourSelect.value;
+
+    const materialFactor = pricingConfig.materials[materialKey] || 1.0;
+    const layerFactor    = pricingConfig.layerHeights[layerKey] || 1.0;
+    const colourFee      = pricingConfig.colourFees[colourKey] || 0;
+
+    const factorsCombined = materialFactor * layerFactor;
+
+    const basePlusExtra = pricingConfig.basePrice + extraWeightFee;
+    const pricePerPart = basePlusExtra * factorsCombined + colourFee;
+
+    const total = pricePerPart * quantity;
+
+    latestQuoteData = buildQuoteData({
+      total,
+      weight,
+      quantity,
+      materialKey,
+      layerKey,
+      colourKey
+    });
+
+    basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
+    extraWeightDisplay.textContent = formatCurrency(extraWeightFee);
+    factorsDisplay.textContent     = '× ' + factorsCombined.toFixed(2);
+    colourFeeDisplay.textContent   = formatCurrency(colourFee);
+    totalDisplay.textContent       = formatCurrency(total);
+
+    // if (hiddenQuoteTotal) hiddenQuoteTotal.value = total.toFixed(2);
+  }
+
+  function syncWeightAndQuote() {
+    const totalWeight = getTotalWeight();
+    if (totalWeight === null) {
+      weightDisplay.textContent = '--';
+    } else {
+      const rounded = Math.max(1, Math.round(totalWeight));
+      weightDisplay.textContent = `${rounded} g`;
+    }
+    updateQuote();
+  }
+
+  function addFilesFromInput(fileListInput) {
+    const newFiles = Array.from(fileListInput || []);
+    if (newFiles.length === 0) {
+      renderFileList();
+      syncWeightAndQuote();
+      return;
+    }
+
+    const tasks = newFiles.map(file => {
+      const lowerName = file.name.toLowerCase();
+      const fileRecord = {
+        id: ++fileIdCounter,
+        name: file.name,
+        size: file.size,
+        weight: null,
+        error: false
+      };
+
+      if (!lowerName.endsWith('.stl')) {
+        fileRecord.error = true;
+        weightWarning.style.display = 'block';
+        weightWarning.textContent = 'Automatic weight estimation currently supports STL files only.';
+        uploadedFiles.push(fileRecord);
+        return Promise.resolve();
+      }
+
+      weightWarning.textContent = 'Please upload a valid STL file so we can calculate the weight.';
+      uploadedFiles.push(fileRecord);
+
+      return estimateWeightFromSTL(file)
+        .then(grams => {
+          if (!isFinite(grams) || grams <= 0) {
+            throw new Error('Invalid weight from STL');
+          }
+          fileRecord.weight = Math.max(1, Math.round(grams));
+        })
+        .catch(err => {
+          console.error('Weight estimation error:', err);
+          fileRecord.error = true;
+        });
+    });
+
+    Promise.all(tasks).finally(() => {
+      renderFileList();
+      syncWeightAndQuote();
+      fileInput.value = '';
+    });
+  }
+
+  // 文件上传 → 估重 → 报价
+  fileInput.addEventListener('change', function () {
+    addFilesFromInput(fileInput.files);
+  });
+
+  [materialSelect, colourSelect, layerSelect, quantityInput].forEach(function (el) {
+    el.addEventListener('input', updateQuote);
+    el.addEventListener('change', updateQuote);
+  });
+
+  quoteButton.addEventListener('click', function (e) {
+    e.preventDefault();
+    updateQuote();
+    if (quoteButton.disabled) return;
+    if (!latestQuoteData) {
+      weightWarning.style.display = 'block';
+      return;
+    }
+
+    window.parent.postMessage({
+      type: 'QUOTE_CONFIRMED',
+      data: latestQuoteData
+    }, '*');
+  });
+
+  renderFileList();
+  updateQuote();
+</script>
 </body>
 </html>

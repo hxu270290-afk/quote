@@ -7,7 +7,7 @@ import wixPayBackend from 'wix-pay-backend';
  * @returns {Promise<wixPayBackend.Payment>} Payment object to pass to startPayment.
  */
 export async function createCustomPrintPayment(data) {
-  const amount = Number(data?.totalPrice ?? data?.total);
+  const amount = Number(data?.total);
   if (!isFinite(amount) || amount <= 0) {
     throw new Error('Invalid payment amount provided.');
   }
