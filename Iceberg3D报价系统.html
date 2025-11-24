@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Iceberg 3D Online Quote</title>
+  <title>Iceberg 3D – Instant Quote</title>
   <style>
     * {
       box-sizing: border-box;
@@ -159,6 +159,14 @@
       margin-top: 4px;
     }
 
+    .weight-display-box {
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #cfd4dd;
+      background: #fff;
+      font-size: 14px;
+    }
+
     @media (max-width: 900px) {
       .steps {
         grid-template-columns: 1fr;
@@ -170,30 +178,33 @@
 <div class="page">
   <h1>Iceberg 3D – Instant FDM Quote</h1>
   <p class="subtitle">
-    Upload your file, enter the estimated weight from your slicer, and configure material / colour / layer height to get an instant quote.
+    Upload your STL file. We estimate the weight from the geometry, then apply material, colour and layer height to give an instant quote.
   </p>
 
   <div class="steps">
-    <!-- STEP 1: FILE & WEIGHT -->
+    <!-- STEP 1: FILE & ESTIMATED WEIGHT -->
     <div>
       <div class="step-title">1: Parts to Add</div>
       <div class="card">
         <div class="field-group">
-          <label for="fileInput">Upload file (STL / 3MF / OBJ)</label>
-          <input id="fileInput" type="file" accept=".stl,.3mf,.obj" />
+          <label for="fileInput">Upload STL file</label>
+          <input id="fileInput" type="file" accept=".stl" />
           <div class="small-text">
-            File is used for reference only here – pricing is based on the weight you enter below.
+            Currently automatic quoting supports STL files. For other formats, please contact us.
           </div>
         </div>
 
         <div class="field-group">
-          <label for="weightInput">Estimated weight (g)</label>
-          <input id="weightInput" type="number" min="1" step="1" placeholder="e.g. 50" />
+          <label>Estimated weight (per part)</label>
+          <div id="weightDisplay" class="weight-display-box">
+            --
+          </div>
           <div class="small-text">
-            Use the total weight from your slicing software (per part, not including supports if you prefer).
+            Based on model volume × filament usage factor (typical 0.2&nbsp;mm, standard infill).  
+            Actual slicer weight may differ slightly.
           </div>
           <div id="weightWarning" class="warning" style="display:none;">
-            Please enter a valid weight in grams to get a quote.
+            Please upload a valid STL file so we can calculate the weight.
           </div>
         </div>
       </div>
@@ -216,7 +227,7 @@
           <select id="materialSelect">
             <option value="PLA">PLA (standard)</option>
             <option value="PETG">PETG</option>
-            <option value="TPU">TPU (flexible)</option>
+            <option value="TPU">TPU (flexible, please confirm)</option>
             <option value="PLA_CF">PLA-CF / PETG-CF</option>
             <option value="ASA_ABS">ASA / ABS</option>
             <option value="PC">PC</option>
@@ -231,10 +242,10 @@
             <option value="basic">Black / White (no extra)</option>
             <option value="standard">Standard colour (red / blue / grey / green)</option>
             <option value="special">Metallic / silk / special texture</option>
-            <option value="custom">Special order colour (needs confirmation)</option>
+            <option value="custom">Special order colour</option>
           </select>
           <div class="small-text">
-            Special colours may require extra lead time. Final confirmation will be sent by email/WhatsApp.
+            Special colours may require extra lead time. Final confirmation will be sent by email / WhatsApp.
           </div>
         </div>
 
@@ -242,7 +253,7 @@
           <div class="field-group">
             <label for="layerSelect">Layer height</label>
             <select id="layerSelect">
-              <option value="0.28">0.28 mm – draft / fast</option>
+              <option value="0.28">0.28 mm – fast / draft</option>
               <option value="0.20" selected>0.20 mm – standard</option>
               <option value="0.12">0.12 mm – high detail</option>
               <option value="0.08">0.08 mm – ultra fine</option>
@@ -286,91 +297,230 @@
           <span id="totalDisplay">£19.00</span>
         </div>
 
-        <button id="quoteButton" class="btn-primary">
+        <button id="quoteButton" class="btn-primary" disabled>
           Get Quote
         </button>
         <div class="quote-note">
-          This is an instant estimate based on your inputs. Final price may be adjusted after file review / printability check.
+          This is an instant estimate based on your file. Final price may be adjusted after detailed file review / printability check.
         </div>
+
+        <!-- 如果要和 Wix 表单联动，可以加隐藏字段： -->
+        <!-- <input type="hidden" id="hiddenQuoteTotal" name="quote_total" /> -->
+        <!-- <input type="hidden" id="hiddenWeight" name="model_weight" /> -->
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // ----- INTERNAL PRICING CONFIG (不会在界面上展示系数) -----
+  // ====== INTERNAL PRICING CONFIG（后台规则，不在前端展示） ======
   const pricingConfig = {
-    basePrice: 19.0,          // 起步价，含 50g PLA 0.2 mm
+    basePrice: 19.0,          // 起步价（含前 50g PLA 0.2mm）
     baseWeight: 50,           // g
-    extraPricePerGram: 0.20,  // 超出部分（PLA 0.2mm）每克单价
+    extraPricePerGram: 0.20,  // 超出部分每 g 单价（以 PLA 0.2mm 为基准）
+
+    // 材料系数
     materials: {
       PLA: 1.0,
       PETG: 1.25,
       TPU: 1.35,
-      PLA_CF: 1.45,      // PLA-CF / PETG-CF
+      PLA_CF: 1.45,     // PLA-CF / PETG-CF
       ASA_ABS: 1.4,
       PC: 1.6,
       PA: 1.8,
       PA_CF: 2.0
     },
+
+    // 层高系数
     layerHeights: {
       "0.28": 0.85,
       "0.20": 1.0,
       "0.12": 1.4,
       "0.08": 1.8
     },
+
+    // 颜色加价（按件）
     colourFees: {
-      basic: 0,       // 黑白
-      standard: 1.5,  // 标准色：1–2£，这里取中间值
-      special: 3.0,   // 金属丝绸等：2–4£
-      custom: 4.0     // 需订货特殊色，可按需要调整
-    }
+      basic: 0,       // 黑 / 白
+      standard: 1.5,  // 1–2£，这里取中值
+      special: 3.0,   // 2–4£
+      custom: 4.0     // 订货色，可按需要调整
+    },
+
+    // 体积（cm³）转克重的系数：solid PLA 密度约 1.24 g/cm³，
+    // 实际打印有空心 + infill，这里按经验取 0.45 左右，你可以根据真实切片结果微调。
+    volumeToWeightFactor: 0.45
   };
 
-  // ----- DOM ELEMENTS -----
-  const weightInput     = document.getElementById('weightInput');
-  const materialSelect  = document.getElementById('materialSelect');
-  const colourSelect    = document.getElementById('colourSelect');
-  const layerSelect     = document.getElementById('layerSelect');
-  const quantityInput   = document.getElementById('quantityInput');
-  const quoteButton     = document.getElementById('quoteButton');
-  const weightWarning   = document.getElementById('weightWarning');
+  // ====== STL 体积计算相关函数（前端解析 STL，估算克重） ======
+  function signedTetraVolume(p1, p2, p3) {
+    // 以原点为第四个点的四面体体积（带符号）
+    return (
+      p1.x * (p2.y * p3.z - p2.z * p3.y) -
+      p1.y * (p2.x * p3.z - p2.z * p3.x) +
+      p1.z * (p2.x * p3.y - p2.y * p3.x)
+    ) / 6.0;
+  }
 
-  const basePriceDisplay    = document.getElementById('basePriceDisplay');
-  const extraWeightDisplay  = document.getElementById('extraWeightDisplay');
-  const factorsDisplay      = document.getElementById('factorsDisplay');
-  const colourFeeDisplay    = document.getElementById('colourFeeDisplay');
-  const quantityDisplay     = document.getElementById('quantityDisplay');
-  const totalDisplay        = document.getElementById('totalDisplay');
+  function isBinarySTL(arrayBuffer) {
+    if (arrayBuffer.byteLength < 84) return false;
+    const dv = new DataView(arrayBuffer);
+    const triCount = dv.getUint32(80, true);
+    const expectedSize = 84 + triCount * 50;
+    return expectedSize === arrayBuffer.byteLength;
+  }
+
+  function computeBinarySTLVolume(arrayBuffer) {
+    const dv = new DataView(arrayBuffer);
+    const triCount = dv.getUint32(80, true);
+    let offset = 84;
+    let volume = 0;
+
+    for (let i = 0; i < triCount; i++) {
+      // 跳过法线（前 12 字节）
+      const ax = dv.getFloat32(offset + 12, true);
+      const ay = dv.getFloat32(offset + 16, true);
+      const az = dv.getFloat32(offset + 20, true);
+
+      const bx = dv.getFloat32(offset + 24, true);
+      const by = dv.getFloat32(offset + 28, true);
+      const bz = dv.getFloat32(offset + 32, true);
+
+      const cx = dv.getFloat32(offset + 36, true);
+      const cy = dv.getFloat32(offset + 40, true);
+      const cz = dv.getFloat32(offset + 44, true);
+
+      const p1 = { x: ax, y: ay, z: az };
+      const p2 = { x: bx, y: by, z: bz };
+      const p3 = { x: cx, y: cy, z: cz };
+
+      volume += signedTetraVolume(p1, p2, p3);
+
+      offset += 50; // 每个三角面 50 字节
+    }
+
+    return Math.abs(volume); // 单位：模型坐标³（通常是 mm³）
+  }
+
+  function computeAsciiSTLVolume(text) {
+    const lines = text.split(/\r?\n/);
+    let volume = 0;
+    let vertices = [];
+
+    for (let line of lines) {
+      line = line.trim();
+      if (line.toLowerCase().startsWith('vertex')) {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 4) {
+          const x = parseFloat(parts[1]);
+          const y = parseFloat(parts[2]);
+          const z = parseFloat(parts[3]);
+          if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+            vertices.push({ x, y, z });
+            if (vertices.length === 3) {
+              volume += signedTetraVolume(vertices[0], vertices[1], vertices[2]);
+              vertices = [];
+            }
+          }
+        }
+      }
+    }
+
+    return Math.abs(volume);
+  }
+
+  // 返回 Promise<number>，单位：克
+  function estimateWeightFromSTL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        try {
+          const arrayBuffer = e.target.result;
+          if (isBinarySTL(arrayBuffer)) {
+            const volMm3 = computeBinarySTLVolume(arrayBuffer);
+            const volCm3 = volMm3 / 1000.0;
+            const grams = volCm3 * pricingConfig.volumeToWeightFactor;
+            resolve(grams);
+          } else {
+            // 非标准二进制，按 ASCII 解析
+            const readerText = new FileReader();
+            readerText.onload = function (e2) {
+              try {
+                const text = e2.target.result;
+                const volMm3 = computeAsciiSTLVolume(text);
+                const volCm3 = volMm3 / 1000.0;
+                const grams = volCm3 * pricingConfig.volumeToWeightFactor;
+                resolve(grams);
+              } catch (err) {
+                reject(err);
+              }
+            };
+            readerText.onerror = reject;
+            readerText.readAsText(file);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // ====== 报价计算和 UI 更新 ======
+  const fileInput        = document.getElementById('fileInput');
+  const materialSelect   = document.getElementById('materialSelect');
+  const colourSelect     = document.getElementById('colourSelect');
+  const layerSelect      = document.getElementById('layerSelect');
+  const quantityInput    = document.getElementById('quantityInput');
+  const quoteButton      = document.getElementById('quoteButton');
+  const weightWarning    = document.getElementById('weightWarning');
+  const weightDisplay    = document.getElementById('weightDisplay');
+
+  const basePriceDisplay   = document.getElementById('basePriceDisplay');
+  const extraWeightDisplay = document.getElementById('extraWeightDisplay');
+  const factorsDisplay     = document.getElementById('factorsDisplay');
+  const colourFeeDisplay   = document.getElementById('colourFeeDisplay');
+  const quantityDisplay    = document.getElementById('quantityDisplay');
+  const totalDisplay       = document.getElementById('totalDisplay');
+
+  // 如果要连到 Wix 表单，可以用这两个：
+  // const hiddenQuoteTotal = document.getElementById('hiddenQuoteTotal');
+  // const hiddenWeight     = document.getElementById('hiddenWeight');
+
+  let currentEstimatedWeight = null; // 单个模型估算克重
 
   function formatCurrency(value) {
     return '£' + value.toFixed(2);
   }
 
-  function calculateQuote() {
-    const weight = parseFloat(weightInput.value);
+  function updateQuote() {
     const qtyRaw = parseInt(quantityInput.value, 10);
-
     const quantity = isNaN(qtyRaw) || qtyRaw < 1 ? 1 : qtyRaw;
     quantityInput.value = quantity;
     quantityDisplay.textContent = quantity;
 
-    if (isNaN(weight) || weight <= 0) {
+    if (currentEstimatedWeight === null || currentEstimatedWeight <= 0) {
       weightWarning.style.display = 'block';
       quoteButton.disabled = true;
-      // 只更新显示起步价 × 数量
-      const totalFallback = pricingConfig.basePrice * quantity;
-      basePriceDisplay.textContent = formatCurrency(pricingConfig.basePrice);
+
+      const fallbackTotal = pricingConfig.basePrice * quantity;
+      basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
       extraWeightDisplay.textContent = formatCurrency(0);
-      factorsDisplay.textContent = '× 1.00';
-      colourFeeDisplay.textContent = formatCurrency(0);
-      totalDisplay.textContent = formatCurrency(totalFallback);
+      factorsDisplay.textContent     = '× 1.00';
+      colourFeeDisplay.textContent   = formatCurrency(0);
+      totalDisplay.textContent       = formatCurrency(fallbackTotal);
+
+      // if (hiddenQuoteTotal) hiddenQuoteTotal.value = fallbackTotal.toFixed(2);
       return;
     } else {
       weightWarning.style.display = 'none';
       quoteButton.disabled = false;
     }
 
+    const weight = currentEstimatedWeight; // 单个模型克重
     const extraWeight = Math.max(0, weight - pricingConfig.baseWeight);
     const extraWeightFee = extraWeight * pricingConfig.extraPricePerGram;
 
@@ -389,30 +539,73 @@
 
     const total = pricePerPart * quantity;
 
-    // 更新显示
     basePriceDisplay.textContent   = formatCurrency(pricingConfig.basePrice);
     extraWeightDisplay.textContent = formatCurrency(extraWeightFee);
     factorsDisplay.textContent     = '× ' + factorsCombined.toFixed(2);
     colourFeeDisplay.textContent   = formatCurrency(colourFee);
     totalDisplay.textContent       = formatCurrency(total);
+
+    // if (hiddenQuoteTotal) hiddenQuoteTotal.value = total.toFixed(2);
   }
 
-  // 点击按钮时也强制计算一次（方便在 Wix 里做“提交表单”前锁定价格）
+  // 文件上传 → 估算重量 → 更新 UI
+  fileInput.addEventListener('change', function () {
+    const file = fileInput.files && fileInput.files[0];
+    currentEstimatedWeight = null;
+    weightDisplay.textContent = '--';
+    quoteButton.disabled = true;
+
+    if (!file) {
+      updateQuote();
+      return;
+    }
+
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.stl')) {
+      weightWarning.style.display = 'block';
+      weightWarning.textContent = 'Automatic weight estimation currently supports STL files only.';
+      updateQuote();
+      return;
+    } else {
+      weightWarning.textContent = 'Please upload a valid STL file so we can calculate the weight.';
+    }
+
+    estimateWeightFromSTL(file)
+      .then(grams => {
+        if (!isFinite(grams) || grams <= 0) {
+          throw new Error('Invalid weight from STL');
+        }
+        const rounded = Math.max(1, Math.round(grams));
+        currentEstimatedWeight = rounded;
+        weightDisplay.textContent = `${rounded} g (per part)`;
+        // if (hiddenWeight) hiddenWeight.value = rounded.toString();
+        updateQuote();
+      })
+      .catch(err => {
+        console.error('Weight estimation error:', err);
+        currentEstimatedWeight = null;
+        weightDisplay.textContent = 'Unable to estimate weight';
+        weightWarning.style.display = 'block';
+        weightWarning.textContent = 'We could not read this STL file. Please contact us for a manual quote.';
+        updateQuote();
+      });
+  });
+
+  // 其他参数变化时更新报价
+  [materialSelect, colourSelect, layerSelect, quantityInput].forEach(function (el) {
+    el.addEventListener('input', updateQuote);
+    el.addEventListener('change', updateQuote);
+  });
+
   quoteButton.addEventListener('click', function (e) {
     e.preventDefault();
-    calculateQuote();
-    // 在这里你可以把 totalDisplay.innerText 写入一个隐藏字段，给 Wix 表单用
-    // 例如：document.getElementById('hiddenQuoteTotal').value = totalDisplay.innerText;
+    updateQuote();
+    // 这里可以和 Wix 表单结合，例如触发表单提交
+    // document.getElementById('YOUR_WIX_FORM_BUTTON_ID').click();
   });
 
-  // 实时更新
-  [weightInput, materialSelect, colourSelect, layerSelect, quantityInput].forEach(function (el) {
-    el.addEventListener('input', calculateQuote);
-    el.addEventListener('change', calculateQuote);
-  });
-
-  // 初始计算
-  calculateQuote();
+  // 初始化显示
+  updateQuote();
 </script>
 </body>
 </html>
