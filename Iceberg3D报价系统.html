@@ -1237,32 +1237,38 @@
 
     // ========== 报价计算 ==========
     function calculateQuote() {
-      const weightTotal = parseFloat(
-        document.getElementById("weightTotal").value || "0"
-      );
-      let copies = parseInt(
-        document.getElementById("copies").value || "1",
-        10
-      );
-      if (isNaN(copies) || copies <= 0) copies = 1;
+      let weightTotal = parseFloat(
+  document.getElementById("weightTotal").value || "0"
+);
+let weightIsDefault = false;
 
-      const qualityKey = document.getElementById("quality").value;
-      const deadlineKey = document.getElementById("deadline").value;
-      const deliveryKey = document.getElementById("delivery").value;
-      const colourKey = document.getElementById("colourCategory").value;
+const errorEl = document.getElementById("errorMsg");
 
-      const materialEl = document.querySelector(".material-card.active");
-      const materialKey = materialEl ? materialEl.getAttribute("data-material") : "pla";
+// 如果没填重量，默认用 50g 做粗算
+if (!weightTotal || weightTotal <= 0) {
+  weightTotal = INCLUDED_WEIGHT;  // = 50
+  weightIsDefault = true;
+  errorEl.style.display = "block";
+  errorEl.textContent =
+    "Using default 50g for rough estimate. For accurate pricing, please enter actual slicer weight.";
+} else {
+  errorEl.style.display = "none";
+  errorEl.textContent = "";
+}
 
-      const errorEl = document.getElementById("errorMsg");
+let copies = parseInt(
+  document.getElementById("copies").value || "1",
+  10
+);
+if (isNaN(copies) || copies <= 0) copies = 1;
 
-      if (!weightTotal || weightTotal <= 0) {
-        errorEl.style.display = "block";
-        errorEl.textContent = "Please enter an estimated total weight from your slicer (greater than 0g).";
-      } else {
-        errorEl.style.display = "none";
-        errorEl.textContent = "";
-      }
+const qualityKey = document.getElementById("quality").value;
+const deadlineKey = document.getElementById("deadline").value;
+const deliveryKey = document.getElementById("delivery").value;
+const colourKey = document.getElementById("colourCategory").value;
+
+const materialEl = document.querySelector(".material-card.active");
+const materialKey = materialEl ? materialEl.getAttribute("data-material") : "pla";
 
       const materialFactor = MATERIAL_FACTORS[materialKey] || 1.0;
       const layerFactor = QUALITY_LAYER_FACTORS[qualityKey] || 1.0;
