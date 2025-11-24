@@ -460,6 +460,43 @@
         <button id="quoteButton" class="btn-primary" disabled>
           Confirm Quote / Pay Now
         </button>
+        <!-- Test Payment Script -->
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+    const quoteButton = document.getElementById('quoteButton');
+
+    if (!quoteButton) {
+        console.error('quoteButton not found in iframe page');
+        return;
+    }
+
+    quoteButton.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        // TEMP: hard-coded test quote for Wix payment integration test
+        const testQuote = {
+            jobId: 'TEST-' + Date.now(),
+            currency: 'GBP',
+            totalPrice: 1.23,      // Test £1.23 payment
+            weightGrams: 100,
+            material: 'PLA',
+            layerHeight: 0.2
+        };
+
+        console.log('Sending test quote to Wix:', testQuote);
+
+        window.parent.postMessage(
+            {
+                type: 'QUOTE_CONFIRMED',
+                data: testQuote
+            },
+            '*'
+        );
+    });
+
+});
+</script>
         <div class="quote-note">
           This is an automatic estimate based on your file and settings.  
           For complex, multi-part or engineering-grade projects, we’ll review the model and confirm the final price with you before starting any print.
