@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Iceberg 3D – Custom Printing Quote & Preview</title>
   
-  <!-- Import Three.js via ES Modules -->
   <script type="importmap">
     {
       "imports": {
@@ -16,226 +15,95 @@
   </script>
 
   <style>
-    :root {
-      --iceberg-bg: #f4f7fb;
-      --iceberg-card-bg: #ffffff;
-      --iceberg-accent: #1f6b63;
-      --iceberg-accent-soft: #e0f2f0;
-      --iceberg-border: #dde3ee;
-      --iceberg-text-main: #1f2933;
-      --iceberg-text-muted: #6b7280;
-    }
-
+    :root { --iceberg-bg: #f4f7fb; --iceberg-card-bg: #ffffff; --iceberg-accent: #1f6b63; --iceberg-accent-soft: #e0f2f0; --iceberg-border: #dde3ee; --iceberg-text-main: #1f2933; --iceberg-text-muted: #6b7280; }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 24px 16px 32px; background: var(--iceberg-bg); color: var(--iceberg-text-main); }
     .iceberg-quote-page { max-width: 1120px; margin: 0 auto; }
-    
-    /* Header */
     .iqp-header-tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--iceberg-accent-soft); color: var(--iceberg-accent); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
     .iqp-header-tag-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--iceberg-accent); }
     h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 0.02em; }
     .subtitle { font-size: 14px; color: var(--iceberg-text-muted); margin-bottom: 22px; max-width: 620px; }
-    
-    /* Layout */
     .steps { display: grid; grid-template-columns: 2.1fr 2.1fr 1.5fr; gap: 20px; align-items: flex-start; }
     @media (max-width: 960px) { .steps { grid-template-columns: 1fr; } }
-
     .step-title { display: flex; align-items: center; gap: 8px; font-size: 16px; margin-bottom: 10px; font-weight: 600; }
     .step-badge { width: 22px; height: 22px; border-radius: 999px; background: var(--iceberg-accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
-    
     .card { background: var(--iceberg-card-bg); border: 1px solid var(--iceberg-border); border-radius: 14px; padding: 16px 16px 18px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04); }
-    
-    /* 3D Viewer Styles */
-    #viewer-container {
-      width: 100%;
-      height: 240px;
-      background: #f0f3f8;
-      border-radius: 10px;
-      margin-bottom: 16px;
-      position: relative;
-      overflow: hidden;
-      border: 1px solid var(--iceberg-border);
-    }
-    #viewer-placeholder {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: var(--iceberg-text-muted);
-      font-size: 13px;
-      text-align: center;
-      pointer-events: none;
-    }
+    #viewer-container { width: 100%; height: 240px; background: #f0f3f8; border-radius: 10px; margin-bottom: 16px; position: relative; overflow: hidden; border: 1px solid var(--iceberg-border); }
+    #viewer-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--iceberg-text-muted); font-size: 13px; text-align: center; pointer-events: none; }
     canvas { display: block; outline: none; }
-
-    /* Form Elements */
     label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; color: #4b5563; }
     .field-group { margin-bottom: 18px; }
-    
-    /* CUSTOM FILE UPLOAD BUTTON STYLES */
-    .custom-file-upload {
-        display: inline-block;
-        width: 100%;
-        padding: 10px 12px;
-        cursor: pointer;
-        background: #fff;
-        border: 1px solid #cfd4dd;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--iceberg-text-main);
-        transition: all 0.2s;
-    }
-    .custom-file-upload:hover {
-        border-color: var(--iceberg-accent);
-        background: #fcfcfc;
-    }
-    /* Hide the actual input */
+    .custom-file-upload { display: inline-block; width: 100%; padding: 10px 12px; cursor: pointer; background: #fff; border: 1px solid #cfd4dd; border-radius: 10px; text-align: center; font-size: 13px; font-weight: 600; color: var(--iceberg-text-main); transition: all 0.2s; }
+    .custom-file-upload:hover { border-color: var(--iceberg-accent); background: #fcfcfc; }
     input[type="file"] { display: none; }
-
     input[type="number"], select { width: 100%; padding: 10px; font-size: 14px; border-radius: 10px; border: 1px solid #cfd4dd; outline: none; background: #fff; transition: all 0.2s ease; }
     input[type="number"]:focus, select:focus { border-color: var(--iceberg-accent); box-shadow: 0 0 0 2px rgba(31, 107, 99, 0.1); }
-    
     .inline-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .small-text { font-size: 11px; color: var(--iceberg-text-muted); margin-top: 4px; line-height: 1.4; }
-    
-    /* File List & Weight */
     .weight-display-box { padding: 8px 10px; border-radius: 10px; border: 1px dashed #cfd4dd; background: #f9fafb; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .file-list { margin-top: 10px; border: 1px solid var(--iceberg-border); border-radius: 10px; background: #f9fafb; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
     .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--iceberg-border); gap: 12px; }
     .file-meta { display: flex; flex-direction: column; gap: 2px; }
     .file-name { font-weight: 600; font-size: 13px; color: var(--iceberg-text-main); word-break: break-all; }
-    .file-details { font-size: 12px; color: var(--iceberg-text-muted); }
     .file-weight { font-weight: 600; color: var(--iceberg-accent); min-width: 80px; text-align: right; font-size: 13px; }
     .file-remove { border: none; background: #fef2f2; color: #b91c1c; border-radius: 999px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
-    
-    /* COLOR SWATCHES */
-    .color-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .color-swatch-container {
-      position: relative;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .color-swatch {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
+    .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 10px; margin-top: 8px; }
+    .color-swatch-container { position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+    .color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
     .color-swatch:hover { transform: scale(1.15); box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; }
-    .color-swatch-container.selected .color-swatch {
-      transform: scale(1.1);
-      box-shadow: 0 0 0 2px white, 0 0 0 4px var(--iceberg-accent);
-      border: none;
-    }
-    .selected-color-name {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--iceberg-accent);
-      margin-top: 6px;
-      min-height: 18px; 
-      transition: color 0.2s;
-    }
-
-    /* Summary & Button */
+    .color-swatch-container.selected .color-swatch { transform: scale(1.1); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--iceberg-accent); border: none; }
+    .selected-color-name { font-size: 12px; font-weight: 600; color: var(--iceberg-accent); margin-top: 6px; min-height: 18px; transition: color 0.2s; }
     .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #4b5563; }
     .summary-row strong { font-weight: 600; color: #111827; }
     .total-row { border-top: 1px solid var(--iceberg-border); margin-top: 10px; padding-top: 10px; font-size: 17px; font-weight: 700; color: #111827; }
-    
     .btn-primary { width: 100%; margin-top: 12px; padding: 12px 0; border-radius: 999px; border: none; background: var(--iceberg-accent); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.12s ease; box-shadow: 0 8px 18px rgba(31, 107, 99, 0.28); }
     .btn-primary:disabled { background: #c1ccd4; box-shadow: none; cursor: not-allowed; }
     .btn-primary:not(:disabled):hover { background: #185249; transform: translateY(-1px); box-shadow: 0 10px 22px rgba(24, 82, 73, 0.35); }
-    
     .quote-note { font-size: 11px; color: var(--iceberg-text-muted); margin-top: 12px; text-align: left; line-height: 1.4; }
     .warning { font-size: 11px; color: #b45309; margin-top: 4px; display: none; }
   </style>
 </head>
 <body>
 <div class="iceberg-quote-page">
-  <div class="iqp-header-tag">
-    <span class="iqp-header-tag-dot"></span>
-    CUSTOM 3D PRINTING – INSTANT QUOTE
-  </div>
+  <div class="iqp-header-tag"><span class="iqp-header-tag-dot"></span>CUSTOM 3D PRINTING – INSTANT QUOTE</div>
   <h1>Get an instant estimate</h1>
-  
-  <!-- REPLACED TEXT HERE -->
-  <p class="subtitle">
-    Upload your STL, select from our premium material library, and get a precise quote instantly.
-  </p>
-
+  <p class="subtitle">Upload your STL, select from our premium material library, and get a precise quote instantly.</p>
   <div class="steps">
-    <!-- STEP 1: FILE & AUTO WEIGHT -->
     <div>
       <div class="step-title"><span class="step-badge">1</span><span>Upload model</span></div>
       <div class="card">
         <div class="field-group">
-          <label for="fileInput">STL File(s)</label>
-          
-          <!-- CUSTOM ENGLISH BUTTON -->
-          <label for="fileInput" class="custom-file-upload">
-            📂 Select STL File
-          </label>
+          <label>STL File(s)</label>
+          <label for="fileInput" class="custom-file-upload">📂 Select STL File</label>
           <input id="fileInput" type="file" accept=".stl" multiple />
-          
           <div id="fileList" class="file-list"></div>
         </div>
-
         <div class="field-group">
           <label>Estimated Weight</label>
-          <div class="weight-display-box">
-            <div><span class="weight-display-label" style="font-size:11px; color:#888;">TOTAL WEIGHT</span></div>
-            <div id="weightDisplay" class="weight-display-value">--</div>
-          </div>
+          <div class="weight-display-box"><div><span class="weight-display-label" style="font-size:11px; color:#888;">TOTAL WEIGHT</span></div><div id="weightDisplay" class="weight-display-value">--</div></div>
           <div class="small-text">Calculated from volume (includes estimated supports/infill).</div>
           <div id="weightWarning" class="warning">Please upload a valid STL file.</div>
         </div>
       </div>
     </div>
-
-    <!-- STEP 2: CONFIGURATION & PREVIEW -->
     <div>
       <div class="step-title"><span class="step-badge">2</span><span>Select Material</span></div>
       <div class="card">
-        
-        <!-- 3D PREVIEW -->
-        <div id="viewer-container">
-            <div id="viewer-placeholder">3D Preview<br>Waiting for file...</div>
-        </div>
-
-        <!-- Technology (Locked) -->
+        <div id="viewer-container"><div id="viewer-placeholder">3D Preview<br>Waiting for file...</div></div>
         <div class="field-group">
           <label>Technology</label>
           <select disabled style="background:#f4f4f4;"><option>FDM / FFF (High Speed)</option></select>
         </div>
-
-        <!-- Material Series Selector -->
         <div class="field-group">
           <label for="materialSeries">Material Series</label>
-          <select id="materialSeries">
-            <!-- Populated by JS -->
-          </select>
+          <select id="materialSeries"></select>
           <div id="materialDesc" class="small-text" style="color:var(--iceberg-accent);"></div>
         </div>
-
-        <!-- Visual Color Picker -->
         <div class="field-group">
           <label>Choose Color</label>
           <div id="selectedColorName" class="selected-color-name">--</div>
-          <div id="colorGrid" class="color-grid">
-            <!-- Populated by JS -->
-          </div>
+          <div id="colorGrid" class="color-grid"></div>
         </div>
-
-        <!-- Layer Height & Quantity -->
         <div class="inline-fields">
           <div class="field-group">
             <label for="layerSelect">Quality (Layer)</label>
@@ -253,442 +121,106 @@
         </div>
       </div>
     </div>
-
-    <!-- STEP 3: SUMMARY -->
     <div>
       <div class="step-title"><span class="step-badge">3</span><span>Review & Pay</span></div>
       <div class="card">
         <div class="summary-row"><span>Base Price</span><span id="basePriceDisplay">£0.00</span></div>
         <div class="summary-row"><span>Weight Cost</span><span id="extraWeightDisplay">£0.00</span></div>
-        
-        <!-- REMOVED MATERIAL MULTIPLIER ROW HERE -->
-        
         <div class="summary-row"><span>Quantity</span><span id="quantityDisplay">1</span></div>
+        <div class="summary-row total-row"><span>Total Estimate</span><span id="totalDisplay">£0.00</span></div>
         
-        <div class="summary-row total-row">
-          <span>Total Estimate</span>
-          <span id="totalDisplay">£0.00</span>
-        </div>
-
-        <button id="quoteButton" class="btn-primary" disabled>Confirm Quote / Pay Now</button>
-
-        <div class="quote-note">
-          Quote is based on calculated weight. Engineering materials (CF/GF/PC) may require additional processing time.
-        </div>
+        <!-- Changed Text to "Proceed to Checkout" -->
+        <button id="quoteButton" class="btn-primary" disabled>Proceed to Checkout</button>
+        
+        <div class="quote-note">Quote is based on calculated weight. Engineering materials (CF/GF/PC) may require additional processing time.</div>
       </div>
     </div>
   </div>
 </div>
 
 <script type="module">
-  // Import Three.js modules
   import * as THREE from 'three';
   import { STLLoader } from 'three/addons/loaders/STLLoader.js';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-  // ==========================================
-  // 3D VIEWER LOGIC
-  // ==========================================
-  const viewerState = {
-    scene: null, camera: null, renderer: null, controls: null,
-    mesh: null, material: null
+  const PRICING_BASE = { startPrice: 15.00, includedGrams: 40, costPerGram: 0.15, volumeFactor: 0.45 };
+  const materialsDB = {
+    "PLA Basic": { multiplier: 1.0, desc: "Standard, easy to print, huge color selection.", colors: [{n:"Jade White",h:"#FFFFFF"},{n:"Black",h:"#000000"},{n:"Gray",h:"#8E9089"},{n:"Silver",h:"#A6A9AA"},{n:"Orange",h:"#FF6A13"},{n:"Red",h:"#C12E1F"},{n:"Blue",h:"#0A2989"},{n:"Green",h:"#00AE42"},{n:"Yellow",h:"#F4EE2A"},{n:"Magenta",h:"#EC008C"},{n:"Gold",h:"#E4BD68"},{n:"Purple",h:"#5E43B7"},{n:"Beige",h:"#F7E6DE"},{n:"Pink",h:"#F55A74"},{n:"Bronze",h:"#847D48"},{n:"Cyan",h:"#0086D6"}] },
+    "PLA Matte": { multiplier: 1.1, desc: "Smooth, non-glossy finish. Hides layer lines.", colors: [{n:"Charcoal",h:"#000000"},{n:"Ivory White",h:"#FFFFFF"},{n:"Ash Gray",h:"#9B9EA0"},{n:"Desert Tan",h:"#E8DBB7"},{n:"Latte Brown",h:"#D3B7A7"},{n:"Scarlet Red",h:"#DE4343"},{n:"Marine Blue",h:"#0078BF"},{n:"Grass Green",h:"#61C680"},{n:"Lemon Yellow",h:"#F7D959"},{n:"Sakura Pink",h:"#E8AFCF"},{n:"Lilac Purple",h:"#AE96D4"},{n:"Ice Blue",h:"#A3D8E1"}] },
+    "PLA Silk": { multiplier: 1.15, desc: "High gloss, metallic-like shiny finish.", colors: [{n:"Silk Gold",h:"#E5B03D"},{n:"Silk Silver",h:"#EAECEB"},{n:"Silk Copper",h:"#5E4B3C"},{n:"Silk White",h:"#FFFFFF"},{n:"Silk Blue",h:"#147BD1"},{n:"Silk Red",h:"#D02727"},{n:"Silk Purple",h:"#854CE4"},{n:"Silk Green",h:"#4CE4A0"}] },
+    "PLA Silk Multi (Dual)": { multiplier: 1.25, desc: "Dual-color co-extrusion. Changes color based on angle.", colors: [{n:"Midnight Blaze",h:"#0047BB",h2:"#7D1B49"},{n:"Neon City",h:"#0047BB",h2:"#BB22A3"},{n:"Gilded Rose",h:"#FF9425",h2:"#FCA2BF"},{n:"Blue Hawaii",h:"#60A4E8",h2:"#4CE4A0"}] },
+    "PLA Galaxy": { multiplier: 1.2, desc: "Sparkly glitter embedded finish.", colors: [{n:"Nebulae",h:"#424379"},{n:"Galaxy Green",h:"#3B665E"},{n:"Galaxy Brown",h:"#684A43"},{n:"Galaxy Purple",h:"#594177"}] },
+    "PLA-CF (Carbon Fiber)": { multiplier: 1.45, desc: "Carbon-fiber reinforced. Matte black finish, stiff.", colors: [{n:"Black CF",h:"#000000"},{n:"Lava Gray",h:"#4D5054"},{n:"Burgundy Red",h:"#951E23"},{n:"Jeans Blue",h:"#6E88BC"}] },
+    "PETG Basic": { multiplier: 1.25, desc: "Stronger than PLA, heat resistant, slightly flexible.", colors: [{n:"Black",h:"#000000"},{n:"White",h:"#FFFFFF"},{n:"Gray",h:"#8E9089"},{n:"Blue",h:"#0056B8"},{n:"Red",h:"#C12E1F"},{n:"Orange",h:"#FF6A13"}] },
+    "PETG Translucent": { multiplier: 1.30, desc: "Semi-transparent finish.", colors: [{n:"Translucent Clear",h:"#F0F0F0"},{n:"Translucent Blue",h:"#61B0FF"},{n:"Translucent Red",h:"#F9C1BD"},{n:"Translucent Orange",h:"#FF911A"}] },
+    "TPU 95A (Flexible)": { multiplier: 1.50, desc: "Rubber-like, flexible material.", colors: [{n:"Black",h:"#000000"},{n:"White",h:"#FFFFFF"},{n:"Red",h:"#C8102E"},{n:"Blue",h:"#0072CE"}] }
   };
+  const LAYER_MULTIPLIERS = { "0.28": 0.9, "0.20": 1.0, "0.12": 1.3, "0.08": 1.6 };
+
+  let uploadedFiles = []; let fileIdCounter = 0; let selectedMaterial = "PLA Basic"; let selectedColor = materialsDB["PLA Basic"].colors[0]; let currentQuote = null;
+  const els = { fileInput: document.getElementById('fileInput'), fileList: document.getElementById('fileList'), weightDisplay: document.getElementById('weightDisplay'), weightWarning: document.getElementById('weightWarning'), materialSeries: document.getElementById('materialSeries'), materialDesc: document.getElementById('materialDesc'), colorGrid: document.getElementById('colorGrid'), colorName: document.getElementById('selectedColorName'), layerSelect: document.getElementById('layerSelect'), quantityInput: document.getElementById('quantityInput'), basePrice: document.getElementById('basePriceDisplay'), extraWeight: document.getElementById('extraWeightDisplay'), quantity: document.getElementById('quantityDisplay'), total: document.getElementById('totalDisplay'), btn: document.getElementById('quoteButton') };
+  const viewerState = { scene: null, camera: null, renderer: null, controls: null, mesh: null, material: null };
 
   function init3DViewer() {
     const container = document.getElementById('viewer-container');
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    // Scene
-    viewerState.scene = new THREE.Scene();
-    viewerState.scene.background = new THREE.Color(0xf0f3f8);
-
-    // Camera
-    viewerState.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    viewerState.camera.position.set(50, 50, 50);
-
-    // Renderer
-    viewerState.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    viewerState.renderer.setSize(width, height);
-    viewerState.renderer.setPixelRatio(window.devicePixelRatio);
+    viewerState.scene = new THREE.Scene(); viewerState.scene.background = new THREE.Color(0xf0f3f8);
+    viewerState.camera = new THREE.PerspectiveCamera(45, container.clientWidth/container.clientHeight, 0.1, 1000); viewerState.camera.position.set(50,50,50);
+    viewerState.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); viewerState.renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(viewerState.renderer.domElement);
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    viewerState.scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(50, 100, 50);
-    viewerState.scene.add(dirLight);
-    
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    backLight.position.set(-50, 50, -50);
-    viewerState.scene.add(backLight);
-
-    // Controls
-    viewerState.controls = new OrbitControls(viewerState.camera, viewerState.renderer.domElement);
-    viewerState.controls.enableDamping = true;
-    viewerState.controls.autoRotate = true;
-    viewerState.controls.autoRotateSpeed = 2.0;
-
-    // Animation Loop
-    function animate() {
-      requestAnimationFrame(animate);
-      viewerState.controls.update();
-      viewerState.renderer.render(viewerState.scene, viewerState.camera);
-    }
-    animate();
-
-    // Handle Resize
-    window.addEventListener('resize', () => {
-      const newWidth = container.clientWidth;
-      const newHeight = container.clientHeight;
-      viewerState.camera.aspect = newWidth / newHeight;
-      viewerState.camera.updateProjectionMatrix();
-      viewerState.renderer.setSize(newWidth, newHeight);
-    });
+    viewerState.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(50,100,50); viewerState.scene.add(dl);
+    viewerState.scene.add(new THREE.DirectionalLight(0xffffff, 0.3));
+    viewerState.controls = new OrbitControls(viewerState.camera, viewerState.renderer.domElement); viewerState.controls.enableDamping = true; viewerState.controls.autoRotate = true;
+    function animate() { requestAnimationFrame(animate); viewerState.controls.update(); viewerState.renderer.render(viewerState.scene, viewerState.camera); } animate();
   }
-
   function loadSTLFromBuffer(buffer) {
-    const loader = new STLLoader();
-    const geometry = loader.parse(buffer);
-    
-    // Center Geometry
-    geometry.center();
-    geometry.computeVertexNormals();
-
-    // Remove old mesh
-    if (viewerState.mesh) {
-      viewerState.scene.remove(viewerState.mesh);
-      viewerState.mesh.geometry.dispose();
-    }
-
-    // Initial Material (Will be updated by UI immediately after)
-    viewerState.material = new THREE.MeshStandardMaterial({ 
-      color: 0xcccccc, 
-      roughness: 0.5, 
-      metalness: 0.1 
-    });
-
-    viewerState.mesh = new THREE.Mesh(geometry, viewerState.material);
-    
-    // Rotate to sit flat (usually STL Z-up needs rotation, depends on export)
-    viewerState.mesh.rotation.x = -Math.PI / 2;
-    viewerState.mesh.castShadow = true;
-    viewerState.mesh.receiveShadow = true;
-
-    viewerState.scene.add(viewerState.mesh);
-
-    // Adjust Camera Fit
-    const box = new THREE.Box3().setFromObject(viewerState.mesh);
-    const size = box.getSize(new THREE.Vector3()).length();
-    const center = box.getCenter(new THREE.Vector3());
-
-    viewerState.controls.maxDistance = size * 10;
-    viewerState.camera.position.copy(center);
-    viewerState.camera.position.x += size / 2.0;
-    viewerState.camera.position.y += size / 5.0;
-    viewerState.camera.position.z += size / 2.0;
-    viewerState.camera.lookAt(center);
-
-    document.getElementById('viewer-placeholder').style.display = 'none';
-    
-    // Apply current selected material/color
-    updateModelAppearance();
+    const loader = new STLLoader(); const geometry = loader.parse(buffer); geometry.center(); geometry.computeVertexNormals();
+    if (viewerState.mesh) { viewerState.scene.remove(viewerState.mesh); viewerState.mesh.geometry.dispose(); }
+    viewerState.material = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5, metalness: 0.1 });
+    viewerState.mesh = new THREE.Mesh(geometry, viewerState.material); viewerState.mesh.rotation.x = -Math.PI/2; viewerState.scene.add(viewerState.mesh);
+    const box = new THREE.Box3().setFromObject(viewerState.mesh); const size = box.getSize(new THREE.Vector3()).length(); const center = box.getCenter(new THREE.Vector3());
+    viewerState.controls.maxDistance = size*10; viewerState.camera.position.copy(center); viewerState.camera.position.add(new THREE.Vector3(size/2, size/5, size/2)); viewerState.camera.lookAt(center);
+    document.getElementById('viewer-placeholder').style.display = 'none'; updateModelAppearance();
   }
-
   function updateModelAppearance() {
     if (!viewerState.mesh) return;
-
-    const matName = selectedMaterial;
-    const colHex = selectedColor ? selectedColor.h : '#ffffff';
-    
-    // 1. Update Color
+    const matName = selectedMaterial; const colHex = selectedColor ? selectedColor.h : '#ffffff';
     viewerState.mesh.material.color.set(colHex);
-
-    // 2. Update Material Physics based on Series
-    const mat = viewerState.mesh.material;
-    
-    // Defaults
-    mat.transparent = false;
-    mat.opacity = 1.0;
-    mat.transmission = 0.0;
-    mat.roughness = 0.5;
-    mat.metalness = 0.05;
-
-    if (matName.includes("Matte")) {
-      mat.roughness = 0.9;
-      mat.metalness = 0.0;
-    } else if (matName.includes("Silk")) {
-      mat.roughness = 0.2;
-      mat.metalness = 0.6; // Shiny
-    } else if (matName.includes("CF")) {
-      mat.roughness = 0.8; // Textured look
-      mat.color.lerp(new THREE.Color(0x000000), 0.2); // Slightly darken CF
-    } else if (matName.includes("Translucent") || matName.includes("Transparent")) {
-      mat.transparent = true;
-      mat.opacity = 0.6;
-      mat.roughness = 0.1;
-      mat.transmission = 0.8; // Glass-like
-    } else if (matName.includes("TPU")) {
-      mat.roughness = 0.6;
-    }
-    
+    const mat = viewerState.mesh.material; mat.transparent = false; mat.opacity = 1.0; mat.transmission = 0.0; mat.roughness = 0.5; mat.metalness = 0.05;
+    if (matName.includes("Matte")) { mat.roughness = 0.9; mat.metalness = 0.0; }
+    else if (matName.includes("Silk")) { mat.roughness = 0.2; mat.metalness = 0.6; }
+    else if (matName.includes("CF")) { mat.roughness = 0.8; mat.color.lerp(new THREE.Color(0x000000), 0.2); }
+    else if (matName.includes("Translucent")) { mat.transparent = true; mat.opacity = 0.6; mat.transmission = 0.8; mat.roughness = 0.1; }
     mat.needsUpdate = true;
   }
-
-  // ==========================================
-  // EXISTING LOGIC ADAPTED TO MODULE SCOPE
-  // ==========================================
-  
-  // Define Pricing Base
-  const PRICING_BASE = {
-    startPrice: 15.00,
-    includedGrams: 40,
-    costPerGram: 0.15,
-    volumeFactor: 0.45
-  };
-
-  // Define Material Series
-  const materialsDB = {
-    "PLA Basic": {
-      multiplier: 1.0,
-      desc: "Standard, easy to print, huge color selection.",
-      colors: [
-        {n:"Jade White",h:"#FFFFFF"},{n:"Black",h:"#000000"},{n:"Gray",h:"#8E9089"},{n:"Silver",h:"#A6A9AA"},
-        {n:"Orange",h:"#FF6A13"},{n:"Red",h:"#C12E1F"},{n:"Blue",h:"#0A2989"},{n:"Green",h:"#00AE42"},
-        {n:"Yellow",h:"#F4EE2A"},{n:"Magenta",h:"#EC008C"},{n:"Gold",h:"#E4BD68"},{n:"Purple",h:"#5E43B7"},
-        {n:"Beige",h:"#F7E6DE"},{n:"Pink",h:"#F55A74"},{n:"Bronze",h:"#847D48"},{n:"Cyan",h:"#0086D6"}
-      ]
-    },
-    "PLA Matte": {
-      multiplier: 1.1,
-      desc: "Smooth, non-glossy finish. Hides layer lines.",
-      colors: [
-        {n:"Charcoal",h:"#000000"},{n:"Ivory White",h:"#FFFFFF"},{n:"Ash Gray",h:"#9B9EA0"},
-        {n:"Desert Tan",h:"#E8DBB7"},{n:"Latte Brown",h:"#D3B7A7"},{n:"Scarlet Red",h:"#DE4343"},
-        {n:"Marine Blue",h:"#0078BF"},{n:"Grass Green",h:"#61C680"},{n:"Lemon Yellow",h:"#F7D959"},
-        {n:"Sakura Pink",h:"#E8AFCF"},{n:"Lilac Purple",h:"#AE96D4"},{n:"Ice Blue",h:"#A3D8E1"}
-      ]
-    },
-    "PLA Silk": {
-      multiplier: 1.15,
-      desc: "High gloss, metallic-like shiny finish.",
-      colors: [
-        {n:"Silk Gold",h:"#E5B03D"},{n:"Silk Silver",h:"#EAECEB"},{n:"Silk Copper",h:"#5E4B3C"},
-        {n:"Silk White",h:"#FFFFFF"},{n:"Silk Blue",h:"#147BD1"},{n:"Silk Red",h:"#D02727"},
-        {n:"Silk Purple",h:"#854CE4"},{n:"Silk Green",h:"#4CE4A0"}
-      ]
-    },
-    "PLA Silk Multi (Dual)": {
-      multiplier: 1.25,
-      desc: "Dual-color co-extrusion. Changes color based on angle.",
-      colors: [
-        {n:"Midnight Blaze",h:"#0047BB",h2:"#7D1B49"},
-        {n:"Neon City",h:"#0047BB",h2:"#BB22A3"},
-        {n:"Gilded Rose",h:"#FF9425",h2:"#FCA2BF"},
-        {n:"Blue Hawaii",h:"#60A4E8",h2:"#4CE4A0"}
-      ]
-    },
-    "PLA Galaxy": {
-      multiplier: 1.2,
-      desc: "Sparkly glitter embedded finish.",
-      colors: [
-        {n:"Nebulae",h:"#424379"},{n:"Galaxy Green",h:"#3B665E"},
-        {n:"Galaxy Brown",h:"#684A43"},{n:"Galaxy Purple",h:"#594177"}
-      ]
-    },
-    "PLA-CF (Carbon Fiber)": {
-      multiplier: 1.45,
-      desc: "Carbon-fiber reinforced. Matte black finish, stiff.",
-      colors: [
-        {n:"Black CF",h:"#000000"},{n:"Lava Gray",h:"#4D5054"},
-        {n:"Burgundy Red",h:"#951E23"},{n:"Jeans Blue",h:"#6E88BC"}
-      ]
-    },
-    "PETG Basic": {
-      multiplier: 1.25,
-      desc: "Stronger than PLA, heat resistant, slightly flexible.",
-      colors: [
-        {n:"Black",h:"#000000"},{n:"White",h:"#FFFFFF"},{n:"Gray",h:"#8E9089"},
-        {n:"Blue",h:"#0056B8"},{n:"Red",h:"#C12E1F"},{n:"Orange",h:"#FF6A13"}
-      ]
-    },
-    "PETG Translucent": {
-      multiplier: 1.30,
-      desc: "Semi-transparent finish.",
-      colors: [
-        {n:"Translucent Clear",h:"#F0F0F0"},{n:"Translucent Blue",h:"#61B0FF"},
-        {n:"Translucent Red",h:"#F9C1BD"},{n:"Translucent Orange",h:"#FF911A"}
-      ]
-    },
-    "TPU 95A (Flexible)": {
-      multiplier: 1.50,
-      desc: "Rubber-like, flexible material.",
-      colors: [
-        {n:"Black",h:"#000000"},{n:"White",h:"#FFFFFF"},
-        {n:"Red",h:"#C8102E"},{n:"Blue",h:"#0072CE"}
-      ]
-    }
-  };
-
-  const LAYER_MULTIPLIERS = { "0.28": 0.9, "0.20": 1.0, "0.12": 1.3, "0.08": 1.6 };
-
-  let uploadedFiles = [];
-  let fileIdCounter = 0;
-  let selectedMaterial = "PLA Basic";
-  let selectedColor = materialsDB["PLA Basic"].colors[0]; 
-  let currentQuote = null;
-
-  const els = {
-    fileInput: document.getElementById('fileInput'),
-    fileList: document.getElementById('fileList'),
-    weightDisplay: document.getElementById('weightDisplay'),
-    weightWarning: document.getElementById('weightWarning'),
-    materialSeries: document.getElementById('materialSeries'),
-    materialDesc: document.getElementById('materialDesc'),
-    colorGrid: document.getElementById('colorGrid'),
-    colorName: document.getElementById('selectedColorName'),
-    layerSelect: document.getElementById('layerSelect'),
-    quantityInput: document.getElementById('quantityInput'),
-    basePrice: document.getElementById('basePriceDisplay'),
-    extraWeight: document.getElementById('extraWeightDisplay'),
-    // factorsDisplay REMOVED
-    quantity: document.getElementById('quantityDisplay'),
-    total: document.getElementById('totalDisplay'),
-    btn: document.getElementById('quoteButton')
-  };
-  
   function init() {
-    init3DViewer(); // Init Three.js
-
-    Object.keys(materialsDB).forEach(key => {
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = key;
-      els.materialSeries.appendChild(opt);
-    });
-
+    init3DViewer();
+    Object.keys(materialsDB).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; els.materialSeries.appendChild(o); });
     renderColorGrid(selectedMaterial);
   }
-
-  function renderColorGrid(materialKey) {
-    els.colorGrid.innerHTML = ''; 
-    const matData = materialsDB[materialKey];
-    els.materialDesc.textContent = matData.desc;
-
-    // Reset to first color
-    const colorList = matData.colors;
-    selectedColor = colorList[0];
-    updateColorNameDisplay();
-    updateModelAppearance(); // Update 3D Model Material
-
-    colorList.forEach((col, index) => {
-      const container = document.createElement('div');
-      container.className = 'color-swatch-container';
-      if (index === 0) container.classList.add('selected');
-
-      const swatch = document.createElement('div');
-      swatch.className = 'color-swatch';
-      
-      if (col.h2) {
-        swatch.style.background = `linear-gradient(135deg, ${col.h} 50%, ${col.h2} 50%)`;
-      } else {
-        swatch.style.backgroundColor = col.h;
-        if (col.h.toUpperCase() === '#FFFFFF') {
-          swatch.style.border = '1px solid #ddd';
-        }
-      }
-
-      container.onclick = () => {
-        document.querySelectorAll('.color-swatch-container').forEach(el => el.classList.remove('selected'));
-        container.classList.add('selected');
-        
-        selectedColor = col;
-        updateColorNameDisplay();
-        calculateQuote();
-        updateModelAppearance(); // Update 3D Model Color/Mat
-      };
-
-      container.appendChild(swatch);
-      els.colorGrid.appendChild(container);
-    });
-    
-    calculateQuote();
+  function renderColorGrid(k) {
+    els.colorGrid.innerHTML = ''; const d = materialsDB[k]; els.materialDesc.textContent = d.desc; selectedColor = d.colors[0]; updateColorNameDisplay(); updateModelAppearance();
+    d.colors.forEach((c, i) => {
+      const dv = document.createElement('div'); dv.className = 'color-swatch-container' + (i===0?' selected':'');
+      const sw = document.createElement('div'); sw.className = 'color-swatch';
+      if (c.h2) sw.style.background = `linear-gradient(135deg, ${c.h} 50%, ${c.h2} 50%)`; else { sw.style.backgroundColor = c.h; if(c.h.toUpperCase()==='#FFFFFF') sw.style.border='1px solid #ddd'; }
+      dv.onclick = () => { document.querySelectorAll('.color-swatch-container').forEach(e=>e.classList.remove('selected')); dv.classList.add('selected'); selectedColor = c; updateColorNameDisplay(); calculateQuote(); updateModelAppearance(); };
+      dv.appendChild(sw); els.colorGrid.appendChild(dv);
+    }); calculateQuote();
   }
-
-  function updateColorNameDisplay() {
-    els.colorName.textContent = selectedColor ? selectedColor.n : '--';
-    els.colorName.style.color = selectedMaterial.includes('PLA') ? 'var(--iceberg-accent)' : '#444';
-  }
-
-  function getTotalWeight() {
-    const valid = uploadedFiles.filter(f => !f.error && f.weight > 0);
-    return valid.reduce((sum, f) => sum + f.weight, 0);
-  }
-
+  function updateColorNameDisplay() { els.colorName.textContent = selectedColor ? selectedColor.n : '--'; els.colorName.style.color = selectedMaterial.includes('PLA') ? 'var(--iceberg-accent)' : '#444'; }
   function calculateQuote() {
-    let qty = parseInt(els.quantityInput.value) || 1;
-    els.quantityInput.value = qty;
-    els.quantity.textContent = qty;
-
-    const totalWeight = getTotalWeight();
-
-    if (totalWeight <= 0) {
-      els.weightDisplay.textContent = '--';
-      els.weightWarning.style.display = 'block';
-      els.btn.disabled = true;
-      resetPriceUI();
-      return;
-    }
-
-    els.weightDisplay.textContent = Math.ceil(totalWeight) + ' g';
-    els.weightWarning.style.display = 'none';
-    els.btn.disabled = false;
-
-    const matData = materialsDB[selectedMaterial];
-    const matMult = matData.multiplier;
-    const layerMult = LAYER_MULTIPLIERS[els.layerSelect.value] || 1.0;
-    
-    const totalMultiplier = matMult * layerMult;
-
-    let base = PRICING_BASE.startPrice;
-    let extraCost = 0;
-    
-    if (totalWeight > PRICING_BASE.includedGrams) {
-      extraCost = (totalWeight - PRICING_BASE.includedGrams) * PRICING_BASE.costPerGram;
-    }
-
-    const pricePerPart = (base + extraCost) * totalMultiplier;
-    const finalTotal = pricePerPart * qty;
-
-    els.basePrice.textContent = '£' + PRICING_BASE.startPrice.toFixed(2);
-    els.extraWeight.textContent = '£' + (extraCost * totalMultiplier).toFixed(2);
-    // Removed factorsDisplay update
-    els.total.textContent = '£' + finalTotal.toFixed(2);
-
-    currentQuote = {
-      jobId: 'JOB-' + Date.now(),
-      totalPrice: Number(finalTotal.toFixed(2)),
-      currency: 'GBP',
-      material: selectedMaterial,
-      color: selectedColor.n,
-      layerHeight: els.layerSelect.value,
-      quantity: qty,
-      weightGrams: Math.ceil(totalWeight),
-      files: uploadedFiles.map(f => f.name)
-    };
+    let qty = parseInt(els.quantityInput.value) || 1; els.quantityInput.value = qty; els.quantity.textContent = qty;
+    const w = uploadedFiles.filter(f => !f.error).reduce((s,f) => s+f.weight, 0);
+    if (w <= 0) { els.weightDisplay.textContent = '--'; els.weightWarning.style.display = 'block'; els.btn.disabled = true; resetPriceUI(); return; }
+    els.weightDisplay.textContent = Math.ceil(w) + ' g'; els.weightWarning.style.display = 'none'; els.btn.disabled = false;
+    const mm = materialsDB[selectedMaterial].multiplier; const lm = LAYER_MULTIPLIERS[els.layerSelect.value] || 1.0;
+    let extra = 0; if (w > PRICING_BASE.includedGrams) extra = (w - PRICING_BASE.includedGrams) * PRICING_BASE.costPerGram;
+    const final = (PRICING_BASE.startPrice + extra) * mm * lm * qty;
+    els.basePrice.textContent = '£' + PRICING_BASE.startPrice.toFixed(2); els.extraWeight.textContent = '£' + (extra * mm * lm).toFixed(2); els.total.textContent = '£' + final.toFixed(2);
+    currentQuote = { jobId: 'JOB-' + Date.now(), totalPrice: Number(final.toFixed(2)), currency: 'GBP', material: selectedMaterial, color: selectedColor.n, quantity: qty };
   }
-
-  function resetPriceUI() {
-    els.basePrice.textContent = '£0.00';
-    els.extraWeight.textContent = '£0.00';
-    // Removed factorsDisplay update
-    els.total.textContent = '£0.00';
-    currentQuote = null;
-  }
-
-  // Volume Calculation Logic
+  function resetPriceUI() { els.basePrice.textContent = '£0.00'; els.extraWeight.textContent = '£0.00'; els.total.textContent = '£0.00'; currentQuote = null; }
   function signedTetraVolume(p1,p2,p3){return(p1.x*(p2.y*p3.z-p2.z*p3.y)-p1.y*(p2.x*p3.z-p2.z*p3.x)+p1.z*(p2.x*p3.y-p2.y*p3.x))/6.0;}
   function computeBinarySTLVolume(ab){
     const dv=new DataView(ab);const n=dv.getUint32(80,true);let v=0,off=84;
@@ -699,88 +231,40 @@
       v+=signedTetraVolume(p1,p2,p3);off+=50;
     } return Math.abs(v);
   }
-
   function handleFiles(files) {
-    const list = Array.from(files);
-    if (!list.length) return;
-
-    list.forEach((file) => {
-      const id = ++fileIdCounter;
-      const fileObj = { id, name: file.name, size: file.size, weight: 0, error: false };
-      
-      if (!file.name.toLowerCase().endsWith('.stl')) {
-        fileObj.error = true;
-        uploadedFiles.push(fileObj);
-        renderFileList();
-      } else {
+    Array.from(files).forEach(f => {
+      const o = { id: ++fileIdCounter, name: f.name, weight: 0, error: !f.name.toLowerCase().endsWith('.stl') };
+      if (!o.error) {
         const r = new FileReader();
-        r.onload = (e) => {
-            const buffer = e.target.result;
-            
-            // 1. Calculate Weight
-            try {
-                if(file.size < 84) throw new Error(); 
-                const volMm3 = computeBinarySTLVolume(buffer);
-                fileObj.weight = (volMm3/1000.0) * PRICING_BASE.volumeFactor;
-            } catch { fileObj.weight = 0; fileObj.error = true; }
-            
-            // 2. Load into 3D Viewer (Only the most recent file for preview)
-            if(!fileObj.error && buffer) {
-                loadSTLFromBuffer(buffer);
-            }
-
-            uploadedFiles.push(fileObj);
-            renderFileList();
-            calculateQuote();
-        };
-        r.readAsArrayBuffer(file);
-      }
-    });
-    els.fileInput.value = '';
+        r.onload = e => {
+          try { if(f.size<84)throw 0; o.weight=(computeBinarySTLVolume(e.target.result)/1000.0)*PRICING_BASE.volumeFactor; loadSTLFromBuffer(e.target.result); }
+          catch { o.weight=0; o.error=true; } uploadedFiles.push(o); renderFileList(); calculateQuote();
+        }; r.readAsArrayBuffer(f);
+      } else { uploadedFiles.push(o); renderFileList(); }
+    }); els.fileInput.value = '';
   }
-
   function renderFileList() {
-    els.fileList.innerHTML = '';
-    uploadedFiles.forEach(f => {
-      const div = document.createElement('div');
-      div.className = 'file-item';
-      div.innerHTML = `
-        <div class="file-meta"><div class="file-name">${f.name}</div></div>
-        <div class="file-weight" style="${f.error?'color:red':''}">${f.error?'Error':Math.ceil(f.weight)+' g'}</div>
-      `;
-      const btn = document.createElement('button');
-      btn.className = 'file-remove';
-      btn.textContent = 'X';
-      btn.onclick = () => { 
-        uploadedFiles = uploadedFiles.filter(x => x.id !== f.id); 
-        renderFileList(); 
-        calculateQuote(); 
-      };
-      div.appendChild(btn);
-      els.fileList.appendChild(div);
+    els.fileList.innerHTML = ''; uploadedFiles.forEach(f => {
+      const d = document.createElement('div'); d.className = 'file-item';
+      d.innerHTML = `<div class="file-meta"><div class="file-name">${f.name}</div></div><div class="file-weight" style="${f.error?'color:red':''}">${f.error?'Error':Math.ceil(f.weight)+' g'}</div>`;
+      const b = document.createElement('button'); b.className = 'file-remove'; b.textContent = 'X';
+      b.onclick = () => { uploadedFiles = uploadedFiles.filter(x => x.id !== f.id); renderFileList(); calculateQuote(); };
+      d.appendChild(b); els.fileList.appendChild(d);
     });
   }
+  els.fileInput.addEventListener('change', e => handleFiles(e.target.files));
+  els.materialSeries.addEventListener('change', e => { selectedMaterial = e.target.value; renderColorGrid(selectedMaterial); });
+  els.layerSelect.addEventListener('change', calculateQuote); els.quantityInput.addEventListener('input', calculateQuote); els.quantityInput.addEventListener('change', calculateQuote);
   
-  // Event Listeners
-  els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-  els.materialSeries.addEventListener('change', (e) => {
-    selectedMaterial = e.target.value;
-    renderColorGrid(selectedMaterial);
-  });
-  els.layerSelect.addEventListener('change', calculateQuote);
-  els.quantityInput.addEventListener('input', calculateQuote);
-  els.quantityInput.addEventListener('change', calculateQuote);
-
-  els.btn.addEventListener('click', (e) => {
+  // SEND MESSAGE TO WIX
+  els.btn.addEventListener('click', e => {
     e.preventDefault();
     if (!currentQuote || currentQuote.totalPrice <= 0) return;
-    console.log("Quote Confirmed:", currentQuote);
+    // This sends the data out of the iframe to the Wix Page
     window.parent.postMessage({ type: 'QUOTE_CONFIRMED', data: currentQuote }, '*');
   });
 
-  // Start
   init();
-
 </script>
 </body>
 </html>
