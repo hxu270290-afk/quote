@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iceberg 3D – Calculator</title>
+  <title>Iceberg 3D – Full System</title>
   
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
   </script>
 
   <style>
-    /* 样式保持原样，只隐藏了第一步的文件选择器 */
     :root { --iceberg-bg: #f4f7fb; --iceberg-card-bg: #ffffff; --iceberg-accent: #1f6b63; --iceberg-accent-soft: #e0f2f0; --iceberg-border: #dde3ee; --iceberg-text-main: #1f2933; --iceberg-text-muted: #6b7280; }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; padding: 24px 16px 32px; background: var(--iceberg-bg); color: var(--iceberg-text-main); }
@@ -25,6 +24,11 @@
     canvas { display: block; outline: none; }
     label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; color: #4b5563; }
     .field-group { margin-bottom: 18px; }
+    /* File Upload Button Style */
+    .custom-file-upload { display: inline-block; width: 100%; padding: 10px 12px; cursor: pointer; background: #fff; border: 1px solid #cfd4dd; border-radius: 10px; text-align: center; font-size: 13px; font-weight: 600; color: var(--iceberg-text-main); transition: all 0.2s; }
+    .custom-file-upload:hover { border-color: var(--iceberg-accent); background: #fcfcfc; }
+    input[type="file"] { display: none; }
+    
     .inline-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .small-text { font-size: 11px; color: var(--iceberg-text-muted); margin-top: 4px; line-height: 1.4; }
     .weight-display-box { padding: 8px 10px; border-radius: 10px; border: 1px dashed #cfd4dd; background: #f9fafb; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -35,51 +39,50 @@
     .color-swatch-container.selected .color-swatch { transform: scale(1.1); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--iceberg-accent); border: none; }
     .selected-color-name { font-size: 12px; font-weight: 600; color: var(--iceberg-accent); margin-top: 6px; min-height: 18px; transition: color 0.2s; }
     .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #4b5563; }
-    .summary-row total-row { border-top: 1px solid var(--iceberg-border); margin-top: 10px; padding-top: 10px; font-size: 17px; font-weight: 700; color: #111827; }
+    .total-row { border-top: 1px solid var(--iceberg-border); margin-top: 10px; padding-top: 10px; font-size: 17px; font-weight: 700; color: #111827; }
     .btn-primary { width: 100%; margin-top: 12px; padding: 12px 0; border-radius: 999px; border: none; background: var(--iceberg-accent); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.12s ease; box-shadow: 0 8px 18px rgba(31, 107, 99, 0.28); }
     .btn-primary:disabled { background: #c1ccd4; box-shadow: none; cursor: not-allowed; }
-    .quote-note { font-size: 11px; color: var(--iceberg-text-muted); margin-top: 12px; text-align: left; line-height: 1.4; }
     
     /* Loading Overlay */
-    #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:100; justify-content:center; align-items:center; font-weight:600; color:var(--iceberg-accent); }
-    .file-status-box { padding: 15px; background: #e0f2f0; color: #1f6b63; border-radius: 8px; text-align: center; margin-bottom: 15px; font-weight: 600; font-size: 14px; }
+    #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:100; flex-direction:column; justify-content:center; align-items:center; font-weight:600; color:var(--iceberg-accent); text-align: center; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--iceberg-accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-<div id="loadingOverlay">Processing File...</div>
+
+<!-- Overlay for Uploading Process -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingMsg">Uploading & Creating Order...<br><span style="font-size:12px; font-weight:400; color:#666;">This may take a few seconds.</span></div>
+</div>
 
 <div class="iceberg-quote-page">
   <div class="steps">
-    <!-- STEP 1: FILE INFO (Passive) -->
+    <!-- STEP 1: UPLOAD -->
     <div>
-      <div class="step-title"><span class="step-badge">1</span><span>File Info</span></div>
+      <div class="step-title"><span class="step-badge">1</span><span>Upload model</span></div>
       <div class="card">
-        <!-- Replaced Input with Status -->
-        <div id="fileStatusBox" class="file-status-box">No file loaded yet.<br><span style="font-size:12px; font-weight:400; color:#666;">Please upload via the button above.</span></div>
-
+        <div class="field-group">
+          <label>STL File</label>
+          <label for="fileInput" class="custom-file-upload">📂 Select STL File</label>
+          <input id="fileInput" type="file" accept=".stl" />
+          <div id="fileInfo" style="margin-top:8px; font-size:13px; font-weight:600; color:#1f6b63;"></div>
+        </div>
         <div class="field-group">
           <label>Estimated Weight</label>
           <div class="weight-display-box"><div><span class="weight-display-label" style="font-size:11px; color:#888;">TOTAL WEIGHT</span></div><div id="weightDisplay" class="weight-display-value">--</div></div>
-          <div class="small-text">Calculated from volume.</div>
         </div>
       </div>
     </div>
 
-    <!-- STEP 2: CONFIG & PREVIEW -->
+    <!-- STEP 2: CONFIG -->
     <div>
-      <div class="step-title"><span class="step-badge">2</span><span>Preview & Material</span></div>
+      <div class="step-title"><span class="step-badge">2</span><span>Material & Color</span></div>
       <div class="card">
         <div id="viewer-container"><div id="viewer-placeholder">3D Preview</div></div>
-        <div class="field-group">
-          <label for="materialSeries">Material Series</label>
-          <select id="materialSeries"></select>
-          <div id="materialDesc" class="small-text" style="color:var(--iceberg-accent);"></div>
-        </div>
-        <div class="field-group">
-          <label>Choose Color</label>
-          <div id="selectedColorName" class="selected-color-name">--</div>
-          <div id="colorGrid" class="color-grid"></div>
-        </div>
+        <div class="field-group"><label>Material Series</label><select id="materialSeries"></select><div id="materialDesc" class="small-text" style="color:var(--iceberg-accent);"></div></div>
+        <div class="field-group"><label>Color</label><div id="selectedColorName" class="selected-color-name">--</div><div id="colorGrid" class="color-grid"></div></div>
         <div class="inline-fields">
             <div class="field-group"><label>Quality</label><select id="layerSelect"><option value="0.20">Standard (0.20mm)</option><option value="0.12">Detail (0.12mm)</option></select></div>
             <div class="field-group"><label>Quantity</label><input id="quantityInput" type="number" min="1" value="1" /></div>
@@ -87,15 +90,14 @@
       </div>
     </div>
 
-    <!-- STEP 3: SUMMARY -->
+    <!-- STEP 3: PRICE -->
     <div>
       <div class="step-title"><span class="step-badge">3</span><span>Price</span></div>
       <div class="card">
         <div class="summary-row"><span>Base</span><span id="basePriceDisplay">£0.00</span></div>
         <div class="summary-row"><span>Weight</span><span id="extraWeightDisplay">£0.00</span></div>
-        <div class="summary-row total-row" style="font-size:17px; font-weight:700;"><span>Total</span><span id="totalDisplay">£0.00</span></div>
+        <div class="summary-row total-row"><span>Total</span><span id="totalDisplay">£0.00</span></div>
         <button id="quoteButton" class="btn-primary" disabled>Pay Now</button>
-        <div class="quote-note">Secure checkout via Wix.</div>
       </div>
     </div>
   </div>
@@ -113,104 +115,107 @@
     "PETG": { m: 1.25, d: "Stronger", c: [{n:"Black",h:"#111"},{n:"Grey",h:"#888"}] }
   };
 
-  let currentFile = { url: null, weight: 0, name: '' };
+  let rawFile = null; // Store the actual File object
+  let weight = 0;
   let selectedMat = "PLA Basic"; let selectedCol = MATERIALS["PLA Basic"].c[0];
-  
+
   const els = {
-    status: document.getElementById('fileStatusBox'),
+    fileIn: document.getElementById('fileInput'),
+    fileInfo: document.getElementById('fileInfo'),
     weight: document.getElementById('weightDisplay'),
     matSelect: document.getElementById('materialSeries'),
-    matDesc: document.getElementById('materialDesc'),
     colorGrid: document.getElementById('colorGrid'),
     colorName: document.getElementById('selectedColorName'),
     qty: document.getElementById('quantityInput'),
-    base: document.getElementById('basePriceDisplay'),
-    extra: document.getElementById('extraWeightDisplay'),
     total: document.getElementById('totalDisplay'),
     btn: document.getElementById('quoteButton'),
     loader: document.getElementById('loadingOverlay')
   };
 
-  // 3D Viewer Setup
+  // 3D Setup
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf0f3f8);
   const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); cam.position.set(50,50,50);
   const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
   document.getElementById('viewer-container').appendChild(renderer.domElement);
   const controls = new OrbitControls(cam, renderer.domElement); controls.autoRotate = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6)); scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
   let mesh = null;
 
-  function resize() {
-    const c = document.getElementById('viewer-container');
-    renderer.setSize(c.clientWidth, c.clientHeight);
-    cam.aspect = c.clientWidth/c.clientHeight; cam.updateProjectionMatrix();
-  }
+  function resize() { const c = document.getElementById('viewer-container'); renderer.setSize(c.clientWidth, c.clientHeight); cam.aspect = c.clientWidth/c.clientHeight; cam.updateProjectionMatrix(); }
   window.addEventListener('resize', resize);
   function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, cam); }
   resize(); animate();
 
-  // Logic
-  function init() {
-    Object.keys(MATERIALS).forEach(k => els.matSelect.add(new Option(k,k)));
-    renderColors();
-    
-    // LISTENER FOR WIX
-    window.addEventListener('message', async (event) => {
-      if (event.data && event.data.type === 'LOAD_FILE_FROM_URL') {
-        const { url, name } = event.data;
-        console.log("Iframe received URL:", url);
-        loadFromUrl(url, name);
-      }
-    });
-  }
+  // Initialization
+  Object.keys(MATERIALS).forEach(k => els.matSelect.add(new Option(k,k)));
+  renderColors();
 
-  async function loadFromUrl(url, name) {
+  // 1. HANDLE FILE SELECTION
+  els.fileIn.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    rawFile = file; // Save for upload later
+    els.fileInfo.textContent = file.name;
+    
+    const r = new FileReader();
+    r.onload = (ev) => {
+      try {
+        const buffer = ev.target.result;
+        const vol = computeVolume(buffer);
+        weight = (vol/1000.0) * PRICING.volFactor;
+        
+        // 3D Render
+        const loader = new STLLoader(); const geom = loader.parse(buffer);
+        geom.center(); geom.computeVertexNormals();
+        if(mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
+        mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({color:0xcccccc}));
+        mesh.rotation.x = -Math.PI/2; scene.add(mesh);
+        
+        // Camera Fit
+        const box = new THREE.Box3().setFromObject(mesh);
+        const size = box.getSize(new THREE.Vector3()).length();
+        controls.maxDistance = size*5; cam.position.set(size, size, size);
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        
+        updateMaterial(); calcPrice();
+
+      } catch(err) { console.error(err); alert("Invalid STL"); }
+    };
+    r.readAsArrayBuffer(file);
+  });
+
+  // 2. PAY BUTTON -> READ AS BASE64 -> SEND TO WIX
+  els.btn.addEventListener('click', () => {
+    if(!rawFile) return;
+    
+    // Show Loading
     els.loader.style.display = 'flex';
-    els.status.innerHTML = `Loading: ${name}...`;
     
-    try {
-      const response = await fetch(url);
-      const buffer = await response.arrayBuffer();
+    // Convert File to Base64 String for transfer
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64String = e.target.result; // This is the data URL
       
-      // Calculate Volume & Weight
-      const vol = computeVolume(buffer);
-      currentFile.weight = (vol/1000.0) * PRICING.volFactor;
-      currentFile.url = url; // Keep the public URL for reference
-      currentFile.name = name;
+      const quoteInfo = {
+        totalPrice: parseFloat(els.total.textContent.replace('£','')),
+        material: selectedMat,
+        color: selectedCol.n,
+        quantity: els.qty.value
+      };
 
-      // Update UI
-      els.status.innerHTML = `Loaded: <strong>${name}</strong>`;
-      els.status.style.background = "#d1fae5"; els.status.style.color = "#065f46";
-      
-      // Render 3D
-      const loader = new STLLoader();
-      const geom = loader.parse(buffer);
-      geom.center(); geom.computeVertexNormals();
-      
-      if(mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
-      mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({color:0xcccccc}));
-      mesh.rotation.x = -Math.PI/2;
-      scene.add(mesh);
-      
-      // Fit Camera
-      const box = new THREE.Box3().setFromObject(mesh);
-      const size = box.getSize(new THREE.Vector3()).length();
-      controls.maxDistance = size*5;
-      cam.position.set(size, size, size);
-      
-      document.getElementById('viewer-placeholder').style.display = 'none';
-      els.loader.style.display = 'none';
-      
-      updateMaterial(); // Apply color
-      calcPrice();
-      
-    } catch(err) {
-      console.error(err);
-      els.status.textContent = "Error loading file. " + err.message;
-      els.loader.style.display = 'none';
-    }
-  }
+      // Send HUGE message to Wix
+      window.parent.postMessage({
+        type: 'StartCheckout',
+        payload: {
+          fileData: base64String, // The actual file content
+          fileName: rawFile.name,
+          quoteInfo: quoteInfo
+        }
+      }, '*');
+    };
+    reader.readAsDataURL(rawFile);
+  });
 
   function computeVolume(ab) {
     const dv=new DataView(ab); const n=dv.getUint32(80,true); let v=0,off=84;
@@ -220,71 +225,39 @@
       const p3={x:dv.getFloat32(off+36,true),y:dv.getFloat32(off+40,true),z:dv.getFloat32(off+44,true)};
       v += (p1.x*(p2.y*p3.z-p2.z*p3.y)-p1.y*(p2.x*p3.z-p2.z*p3.x)+p1.z*(p2.x*p3.y-p2.y*p3.x))/6.0;
       off+=50;
-    }
-    return Math.abs(v);
+    } return Math.abs(v);
   }
 
   function renderColors() {
     els.colorGrid.innerHTML = '';
     const mat = MATERIALS[selectedMat];
-    els.matDesc.textContent = mat.d;
     selectedCol = mat.c[0];
-    
     mat.c.forEach((c, i) => {
-      const d = document.createElement('div');
-      d.className = 'color-swatch-container'+(i===0?' selected':'');
+      const d = document.createElement('div'); d.className = 'color-swatch-container'+(i===0?' selected':'');
       d.innerHTML = `<div class="color-swatch" style="background:${c.h}; border:${c.h==='#FFF'?'1px solid #ddd':'none'}"></div>`;
-      d.onclick = () => {
-        document.querySelectorAll('.color-swatch-container').forEach(e=>e.classList.remove('selected'));
-        d.classList.add('selected'); selectedCol = c;
-        updateMaterial(); calcPrice();
-      };
+      d.onclick = () => { document.querySelectorAll('.color-swatch-container').forEach(e=>e.classList.remove('selected')); d.classList.add('selected'); selectedCol = c; updateMaterial(); calcPrice(); };
       els.colorGrid.appendChild(d);
     });
     updateMaterial(); calcPrice();
   }
-
-  function updateMaterial() {
-    els.colorName.textContent = selectedCol.n;
-    if(mesh) mesh.material.color.set(selectedCol.h);
-  }
+  
+  function updateMaterial() { els.colorName.textContent = selectedCol.n; if(mesh) mesh.material.color.set(selectedCol.h); }
 
   function calcPrice() {
-    if(currentFile.weight <= 0) return;
+    if(weight <= 0) return;
     const qty = parseInt(els.qty.value)||1;
-    els.weight.textContent = Math.ceil(currentFile.weight) + ' g';
-    
-    let extra = 0;
-    if(currentFile.weight > PRICING.included) extra = (currentFile.weight - PRICING.included) * PRICING.perGram;
-    
+    els.weight.textContent = Math.ceil(weight) + ' g';
+    let extra = 0; if(weight > PRICING.included) extra = (weight - PRICING.included) * PRICING.perGram;
     const total = (PRICING.start + extra) * MATERIALS[selectedMat].m * qty;
     
-    els.base.textContent = '£'+PRICING.start.toFixed(2);
-    els.extra.textContent = '£'+(extra * MATERIALS[selectedMat].m).toFixed(2);
     els.total.textContent = '£'+total.toFixed(2);
     els.btn.disabled = false;
+    document.getElementById('basePriceDisplay').textContent = '£'+PRICING.start.toFixed(2);
+    document.getElementById('extraWeightDisplay').textContent = '£'+(extra * MATERIALS[selectedMat].m).toFixed(2);
   }
 
-  // UI Events
   els.matSelect.addEventListener('change', (e)=>{ selectedMat=e.target.value; renderColors(); });
   els.qty.addEventListener('input', calcPrice);
-  
-  els.btn.addEventListener('click', () => {
-    // Send data back to Wix to trigger payment
-    const totalText = els.total.textContent.replace('£','');
-    window.parent.postMessage({
-      type: 'QUOTE_CONFIRMED',
-      data: {
-        totalPrice: parseFloat(totalText),
-        material: selectedMat,
-        color: selectedCol.n,
-        quantity: els.qty.value,
-        fileUrl: currentFile.url // Pass back the URL Wix gave us, just to be safe
-      }
-    }, '*');
-  });
-
-  init();
 </script>
 </body>
 </html>
