@@ -3,7 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iceberg 3D – Custom Printing Quote</title>
+  <title>Iceberg 3D – Custom Printing Quote & Preview</title>
+  
+  <!-- Import Three.js via ES Modules -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
   <style>
     :root {
       --iceberg-bg: #f4f7fb;
@@ -34,11 +45,54 @@
     
     .card { background: var(--iceberg-card-bg); border: 1px solid var(--iceberg-border); border-radius: 14px; padding: 16px 16px 18px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04); }
     
+    /* 3D Viewer Styles */
+    #viewer-container {
+      width: 100%;
+      height: 240px;
+      background: #f0f3f8;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--iceberg-border);
+    }
+    #viewer-placeholder {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--iceberg-text-muted);
+      font-size: 13px;
+      text-align: center;
+      pointer-events: none;
+    }
+    canvas { display: block; outline: none; }
+
     /* Form Elements */
     label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; color: #4b5563; }
     .field-group { margin-bottom: 18px; }
     
-    input[type="file"] { display: block; width: 100%; padding: 8px 0; font-size: 13px; }
+    /* CUSTOM FILE UPLOAD BUTTON STYLES */
+    .custom-file-upload {
+        display: inline-block;
+        width: 100%;
+        padding: 10px 12px;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid #cfd4dd;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--iceberg-text-main);
+        transition: all 0.2s;
+    }
+    .custom-file-upload:hover {
+        border-color: var(--iceberg-accent);
+        background: #fcfcfc;
+    }
+    /* Hide the actual input */
+    input[type="file"] { display: none; }
+
     input[type="number"], select { width: 100%; padding: 10px; font-size: 14px; border-radius: 10px; border: 1px solid #cfd4dd; outline: none; background: #fff; transition: all 0.2s ease; }
     input[type="number"]:focus, select:focus { border-color: var(--iceberg-accent); box-shadow: 0 0 0 2px rgba(31, 107, 99, 0.1); }
     
@@ -55,7 +109,7 @@
     .file-weight { font-weight: 600; color: var(--iceberg-accent); min-width: 80px; text-align: right; font-size: 13px; }
     .file-remove { border: none; background: #fef2f2; color: #b91c1c; border-radius: 999px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
     
-    /* COLOR SWATCHES (Bambu Style) */
+    /* COLOR SWATCHES */
     .color-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
@@ -78,21 +132,17 @@
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .color-swatch:hover { transform: scale(1.15); box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; }
-    
-    /* Selected State */
     .color-swatch-container.selected .color-swatch {
       transform: scale(1.1);
       box-shadow: 0 0 0 2px white, 0 0 0 4px var(--iceberg-accent);
       border: none;
     }
-    
-    /* Tooltip-like label for selected color */
     .selected-color-name {
       font-size: 12px;
       font-weight: 600;
       color: var(--iceberg-accent);
       margin-top: 6px;
-      min-height: 18px; /* reserve space */
+      min-height: 18px; 
       transition: color 0.2s;
     }
 
@@ -116,8 +166,10 @@
     CUSTOM 3D PRINTING – INSTANT QUOTE
   </div>
   <h1>Get an instant estimate</h1>
+  
+  <!-- REPLACED TEXT HERE -->
   <p class="subtitle">
-    Upload your STL, select from our premium Bambu Lab material library, and get a precise quote instantly.
+    Upload your STL, select from our premium material library, and get a precise quote instantly.
   </p>
 
   <div class="steps">
@@ -127,7 +179,13 @@
       <div class="card">
         <div class="field-group">
           <label for="fileInput">STL File(s)</label>
+          
+          <!-- CUSTOM ENGLISH BUTTON -->
+          <label for="fileInput" class="custom-file-upload">
+            📂 Select STL File
+          </label>
           <input id="fileInput" type="file" accept=".stl" multiple />
+          
           <div id="fileList" class="file-list"></div>
         </div>
 
@@ -143,11 +201,16 @@
       </div>
     </div>
 
-    <!-- STEP 2: CONFIGURATION (New Material UI) -->
+    <!-- STEP 2: CONFIGURATION & PREVIEW -->
     <div>
       <div class="step-title"><span class="step-badge">2</span><span>Select Material</span></div>
       <div class="card">
         
+        <!-- 3D PREVIEW -->
+        <div id="viewer-container">
+            <div id="viewer-placeholder">3D Preview<br>Waiting for file...</div>
+        </div>
+
         <!-- Technology (Locked) -->
         <div class="field-group">
           <label>Technology</label>
@@ -197,7 +260,9 @@
       <div class="card">
         <div class="summary-row"><span>Base Price</span><span id="basePriceDisplay">£0.00</span></div>
         <div class="summary-row"><span>Weight Cost</span><span id="extraWeightDisplay">£0.00</span></div>
-        <div class="summary-row"><span>Material Multiplier</span><span id="factorsDisplay">× 1.00</span></div>
+        
+        <!-- REMOVED MATERIAL MULTIPLIER ROW HERE -->
+        
         <div class="summary-row"><span>Quantity</span><span id="quantityDisplay">1</span></div>
         
         <div class="summary-row total-row">
@@ -215,21 +280,176 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+  // Import Three.js modules
+  import * as THREE from 'three';
+  import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
   // ==========================================
-  // 1. DATA CONFIGURATION (Bambu Lab DB)
+  // 3D VIEWER LOGIC
+  // ==========================================
+  const viewerState = {
+    scene: null, camera: null, renderer: null, controls: null,
+    mesh: null, material: null
+  };
+
+  function init3DViewer() {
+    const container = document.getElementById('viewer-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // Scene
+    viewerState.scene = new THREE.Scene();
+    viewerState.scene.background = new THREE.Color(0xf0f3f8);
+
+    // Camera
+    viewerState.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    viewerState.camera.position.set(50, 50, 50);
+
+    // Renderer
+    viewerState.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    viewerState.renderer.setSize(width, height);
+    viewerState.renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(viewerState.renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    viewerState.scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 100, 50);
+    viewerState.scene.add(dirLight);
+    
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    backLight.position.set(-50, 50, -50);
+    viewerState.scene.add(backLight);
+
+    // Controls
+    viewerState.controls = new OrbitControls(viewerState.camera, viewerState.renderer.domElement);
+    viewerState.controls.enableDamping = true;
+    viewerState.controls.autoRotate = true;
+    viewerState.controls.autoRotateSpeed = 2.0;
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      viewerState.controls.update();
+      viewerState.renderer.render(viewerState.scene, viewerState.camera);
+    }
+    animate();
+
+    // Handle Resize
+    window.addEventListener('resize', () => {
+      const newWidth = container.clientWidth;
+      const newHeight = container.clientHeight;
+      viewerState.camera.aspect = newWidth / newHeight;
+      viewerState.camera.updateProjectionMatrix();
+      viewerState.renderer.setSize(newWidth, newHeight);
+    });
+  }
+
+  function loadSTLFromBuffer(buffer) {
+    const loader = new STLLoader();
+    const geometry = loader.parse(buffer);
+    
+    // Center Geometry
+    geometry.center();
+    geometry.computeVertexNormals();
+
+    // Remove old mesh
+    if (viewerState.mesh) {
+      viewerState.scene.remove(viewerState.mesh);
+      viewerState.mesh.geometry.dispose();
+    }
+
+    // Initial Material (Will be updated by UI immediately after)
+    viewerState.material = new THREE.MeshStandardMaterial({ 
+      color: 0xcccccc, 
+      roughness: 0.5, 
+      metalness: 0.1 
+    });
+
+    viewerState.mesh = new THREE.Mesh(geometry, viewerState.material);
+    
+    // Rotate to sit flat (usually STL Z-up needs rotation, depends on export)
+    viewerState.mesh.rotation.x = -Math.PI / 2;
+    viewerState.mesh.castShadow = true;
+    viewerState.mesh.receiveShadow = true;
+
+    viewerState.scene.add(viewerState.mesh);
+
+    // Adjust Camera Fit
+    const box = new THREE.Box3().setFromObject(viewerState.mesh);
+    const size = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+
+    viewerState.controls.maxDistance = size * 10;
+    viewerState.camera.position.copy(center);
+    viewerState.camera.position.x += size / 2.0;
+    viewerState.camera.position.y += size / 5.0;
+    viewerState.camera.position.z += size / 2.0;
+    viewerState.camera.lookAt(center);
+
+    document.getElementById('viewer-placeholder').style.display = 'none';
+    
+    // Apply current selected material/color
+    updateModelAppearance();
+  }
+
+  function updateModelAppearance() {
+    if (!viewerState.mesh) return;
+
+    const matName = selectedMaterial;
+    const colHex = selectedColor ? selectedColor.h : '#ffffff';
+    
+    // 1. Update Color
+    viewerState.mesh.material.color.set(colHex);
+
+    // 2. Update Material Physics based on Series
+    const mat = viewerState.mesh.material;
+    
+    // Defaults
+    mat.transparent = false;
+    mat.opacity = 1.0;
+    mat.transmission = 0.0;
+    mat.roughness = 0.5;
+    mat.metalness = 0.05;
+
+    if (matName.includes("Matte")) {
+      mat.roughness = 0.9;
+      mat.metalness = 0.0;
+    } else if (matName.includes("Silk")) {
+      mat.roughness = 0.2;
+      mat.metalness = 0.6; // Shiny
+    } else if (matName.includes("CF")) {
+      mat.roughness = 0.8; // Textured look
+      mat.color.lerp(new THREE.Color(0x000000), 0.2); // Slightly darken CF
+    } else if (matName.includes("Translucent") || matName.includes("Transparent")) {
+      mat.transparent = true;
+      mat.opacity = 0.6;
+      mat.roughness = 0.1;
+      mat.transmission = 0.8; // Glass-like
+    } else if (matName.includes("TPU")) {
+      mat.roughness = 0.6;
+    }
+    
+    mat.needsUpdate = true;
+  }
+
+  // ==========================================
+  // EXISTING LOGIC ADAPTED TO MODULE SCOPE
   // ==========================================
   
   // Define Pricing Base
   const PRICING_BASE = {
-    startPrice: 15.00,    // Base setup fee (includes first X grams)
-    includedGrams: 40,    // Grams included in start price
-    costPerGram: 0.15,    // Cost per gram after included amount (Standard PLA)
-    volumeFactor: 0.45    // Density estimation factor
+    startPrice: 15.00,
+    includedGrams: 40,
+    costPerGram: 0.15,
+    volumeFactor: 0.45
   };
 
-  // Define Material Series, Pricing Multipliers, and Colors
-  // Data derived from the provided CSV
+  // Define Material Series
   const materialsDB = {
     "PLA Basic": {
       multiplier: 1.0,
@@ -314,16 +534,12 @@
 
   const LAYER_MULTIPLIERS = { "0.28": 0.9, "0.20": 1.0, "0.12": 1.3, "0.08": 1.6 };
 
-  // ==========================================
-  // 2. STATE MANAGEMENT
-  // ==========================================
   let uploadedFiles = [];
   let fileIdCounter = 0;
   let selectedMaterial = "PLA Basic";
-  let selectedColor = materialsDB["PLA Basic"].colors[0]; // Default to first color
+  let selectedColor = materialsDB["PLA Basic"].colors[0]; 
   let currentQuote = null;
 
-  // DOM Elements
   const els = {
     fileInput: document.getElementById('fileInput'),
     fileList: document.getElementById('fileList'),
@@ -337,18 +553,15 @@
     quantityInput: document.getElementById('quantityInput'),
     basePrice: document.getElementById('basePriceDisplay'),
     extraWeight: document.getElementById('extraWeightDisplay'),
-    factors: document.getElementById('factorsDisplay'),
+    // factorsDisplay REMOVED
     quantity: document.getElementById('quantityDisplay'),
     total: document.getElementById('totalDisplay'),
     btn: document.getElementById('quoteButton')
   };
-
-  // ==========================================
-  // 3. UI INITIALIZATION & RENDER
-  // ==========================================
   
   function init() {
-    // Populate Material Dropdown
+    init3DViewer(); // Init Three.js
+
     Object.keys(materialsDB).forEach(key => {
       const opt = document.createElement('option');
       opt.value = key;
@@ -360,42 +573,41 @@
   }
 
   function renderColorGrid(materialKey) {
-    els.colorGrid.innerHTML = ''; // Clear existing
+    els.colorGrid.innerHTML = ''; 
     const matData = materialsDB[materialKey];
     els.materialDesc.textContent = matData.desc;
 
-    // Reset selection to first color of new material if current invalid
+    // Reset to first color
     const colorList = matData.colors;
     selectedColor = colorList[0];
     updateColorNameDisplay();
+    updateModelAppearance(); // Update 3D Model Material
 
     colorList.forEach((col, index) => {
       const container = document.createElement('div');
       container.className = 'color-swatch-container';
-      if (index === 0) container.classList.add('selected'); // Select first by default
+      if (index === 0) container.classList.add('selected');
 
       const swatch = document.createElement('div');
       swatch.className = 'color-swatch';
       
-      // Handle Dual Color (Gradients) or Solid
       if (col.h2) {
         swatch.style.background = `linear-gradient(135deg, ${col.h} 50%, ${col.h2} 50%)`;
       } else {
         swatch.style.backgroundColor = col.h;
-        // Add subtle border for white/light colors
         if (col.h.toUpperCase() === '#FFFFFF') {
           swatch.style.border = '1px solid #ddd';
         }
       }
 
       container.onclick = () => {
-        // Handle selection UI
         document.querySelectorAll('.color-swatch-container').forEach(el => el.classList.remove('selected'));
         container.classList.add('selected');
         
         selectedColor = col;
         updateColorNameDisplay();
         calculateQuote();
+        updateModelAppearance(); // Update 3D Model Color/Mat
       };
 
       container.appendChild(swatch);
@@ -409,10 +621,6 @@
     els.colorName.textContent = selectedColor ? selectedColor.n : '--';
     els.colorName.style.color = selectedMaterial.includes('PLA') ? 'var(--iceberg-accent)' : '#444';
   }
-
-  // ==========================================
-  // 4. LOGIC: WEIGHT & PRICING
-  // ==========================================
 
   function getTotalWeight() {
     const valid = uploadedFiles.filter(f => !f.error && f.weight > 0);
@@ -438,15 +646,12 @@
     els.weightWarning.style.display = 'none';
     els.btn.disabled = false;
 
-    // Pricing Math
     const matData = materialsDB[selectedMaterial];
     const matMult = matData.multiplier;
     const layerMult = LAYER_MULTIPLIERS[els.layerSelect.value] || 1.0;
     
-    // Combined Multiplier
     const totalMultiplier = matMult * layerMult;
 
-    // Weight Cost Logic
     let base = PRICING_BASE.startPrice;
     let extraCost = 0;
     
@@ -454,17 +659,14 @@
       extraCost = (totalWeight - PRICING_BASE.includedGrams) * PRICING_BASE.costPerGram;
     }
 
-    // Formula: (Base + ExtraWeightCost) * Multipliers * Quantity
     const pricePerPart = (base + extraCost) * totalMultiplier;
     const finalTotal = pricePerPart * qty;
 
-    // Update UI
     els.basePrice.textContent = '£' + PRICING_BASE.startPrice.toFixed(2);
     els.extraWeight.textContent = '£' + (extraCost * totalMultiplier).toFixed(2);
-    els.factors.textContent = `× ${totalMultiplier.toFixed(2)} (${selectedMaterial})`;
+    // Removed factorsDisplay update
     els.total.textContent = '£' + finalTotal.toFixed(2);
 
-    // Save Quote Data for Wix
     currentQuote = {
       jobId: 'JOB-' + Date.now(),
       totalPrice: Number(finalTotal.toFixed(2)),
@@ -481,16 +683,12 @@
   function resetPriceUI() {
     els.basePrice.textContent = '£0.00';
     els.extraWeight.textContent = '£0.00';
-    els.factors.textContent = '× 1.00';
+    // Removed factorsDisplay update
     els.total.textContent = '£0.00';
     currentQuote = null;
   }
 
-  // ==========================================
-  // 5. FILE HANDLING (STL Parsing)
-  // ==========================================
-  
-  // (Retaining your existing STL parsing logic logic mostly unchanged for stability)
+  // Volume Calculation Logic
   function signedTetraVolume(p1,p2,p3){return(p1.x*(p2.y*p3.z-p2.z*p3.y)-p1.y*(p2.x*p3.z-p2.z*p3.x)+p1.z*(p2.x*p3.y-p2.y*p3.x))/6.0;}
   function computeBinarySTLVolume(ab){
     const dv=new DataView(ab);const n=dv.getUint32(80,true);let v=0,off=84;
@@ -501,38 +699,42 @@
       v+=signedTetraVolume(p1,p2,p3);off+=50;
     } return Math.abs(v);
   }
-  function estimateWeight(file) {
-    return new Promise((resolve) => {
-      const r = new FileReader();
-      r.onload = (e) => {
-        try {
-          // Simplified binary check
-          if(file.size < 84) throw new Error(); 
-          const volMm3 = computeBinarySTLVolume(e.target.result);
-          resolve((volMm3/1000.0) * PRICING_BASE.volumeFactor); // convert to grams
-        } catch { resolve(0); } // Fail silently or handle ASCII later
-      };
-      r.readAsArrayBuffer(file);
-    });
-  }
 
   function handleFiles(files) {
     const list = Array.from(files);
     if (!list.length) return;
 
-    list.forEach(async (file) => {
+    list.forEach((file) => {
       const id = ++fileIdCounter;
       const fileObj = { id, name: file.name, size: file.size, weight: 0, error: false };
       
       if (!file.name.toLowerCase().endsWith('.stl')) {
         fileObj.error = true;
+        uploadedFiles.push(fileObj);
+        renderFileList();
       } else {
-        fileObj.weight = await estimateWeight(file);
-        if (fileObj.weight <= 0) fileObj.error = true;
+        const r = new FileReader();
+        r.onload = (e) => {
+            const buffer = e.target.result;
+            
+            // 1. Calculate Weight
+            try {
+                if(file.size < 84) throw new Error(); 
+                const volMm3 = computeBinarySTLVolume(buffer);
+                fileObj.weight = (volMm3/1000.0) * PRICING_BASE.volumeFactor;
+            } catch { fileObj.weight = 0; fileObj.error = true; }
+            
+            // 2. Load into 3D Viewer (Only the most recent file for preview)
+            if(!fileObj.error && buffer) {
+                loadSTLFromBuffer(buffer);
+            }
+
+            uploadedFiles.push(fileObj);
+            renderFileList();
+            calculateQuote();
+        };
+        r.readAsArrayBuffer(file);
       }
-      uploadedFiles.push(fileObj);
-      renderFileList();
-      calculateQuote();
     });
     els.fileInput.value = '';
   }
@@ -549,23 +751,22 @@
       const btn = document.createElement('button');
       btn.className = 'file-remove';
       btn.textContent = 'X';
-      btn.onclick = () => { uploadedFiles = uploadedFiles.filter(x => x.id !== f.id); renderFileList(); calculateQuote(); };
+      btn.onclick = () => { 
+        uploadedFiles = uploadedFiles.filter(x => x.id !== f.id); 
+        renderFileList(); 
+        calculateQuote(); 
+      };
       div.appendChild(btn);
       els.fileList.appendChild(div);
     });
   }
-
-  // ==========================================
-  // 6. EVENT LISTENERS
-  // ==========================================
   
+  // Event Listeners
   els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-  
   els.materialSeries.addEventListener('change', (e) => {
     selectedMaterial = e.target.value;
-    renderColorGrid(selectedMaterial); // Re-render colors
+    renderColorGrid(selectedMaterial);
   });
-
   els.layerSelect.addEventListener('change', calculateQuote);
   els.quantityInput.addEventListener('input', calculateQuote);
   els.quantityInput.addEventListener('change', calculateQuote);
@@ -573,8 +774,7 @@
   els.btn.addEventListener('click', (e) => {
     e.preventDefault();
     if (!currentQuote || currentQuote.totalPrice <= 0) return;
-    
-    console.log("💰 Sending Quote to Wix:", currentQuote);
+    console.log("Quote Confirmed:", currentQuote);
     window.parent.postMessage({ type: 'QUOTE_CONFIRMED', data: currentQuote }, '*');
   });
 
